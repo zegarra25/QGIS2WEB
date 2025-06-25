@@ -1,0 +1,2173 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet-search.css">
+        <link rel="stylesheet" href="css/filter.css">
+<link rel="stylesheet" href="css/nouislider.min.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title></title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-search.js"></script>
+        <script src="js/tailDT.js"></script>
+<script src="js/nouislider.min.js"></script>
+<script src="js/wNumb.js"></script>
+        <script src="data/USCITIESPOPULATION_1.js"></script>
+        <script src="data/USCITIESSUNSETTIME_2.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' || e.target.feature.geometry.type === 'MultiLineString') {
+              highlightLayer.setStyle({
+                color: '#ffff00',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#ffff00',
+                fillOpacity: 1
+              });
+            }
+        }
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds([[15.851936823060095,-127.92151137060678],[54.738717205848445,-67.44120364295581]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+        var abstract = new L.Control({'position':'bottomright'});
+        abstract.onAdd = function (map) {
+            this._div = L.DomUtil.create('div',
+            'leaflet-control abstract');
+            this._div.id = 'abstract'
+
+                abstract.show();
+                return this._div;
+            };
+            abstract.show = function () {
+                this._div.classList.remove("abstract");
+                this._div.classList.add("abstractUncollapsed");
+                this._div.innerHTML = 'THIS IS A WEBMAP TRIAL';
+        };
+        abstract.addTo(map);
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+            map.setMaxBounds(map.getBounds());
+        }
+        map.createPane('pane_OSMStandard_0');
+        map.getPane('pane_OSMStandard_0').style.zIndex = 400;
+        var layer_OSMStandard_0 = L.tileLayer('http://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            pane: 'pane_OSMStandard_0',
+            opacity: 1.0,
+            attribution: '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors, CC-BY-SA</a>',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        layer_OSMStandard_0;
+        map.addLayer(layer_OSMStandard_0);
+        function pop_USCITIESPOPULATION_1(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">City</th>\
+                        <td>' + (feature.properties['city'] !== null ? autolinker.link(String(feature.properties['city']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">State</th>\
+                        <td>' + (feature.properties['state_id'] !== null ? autolinker.link(String(feature.properties['state_id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Population</th>\
+                        <td>' + (feature.properties['population'] !== null ? autolinker.link(String(feature.properties['population']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Population_density</th>\
+                        <td>' + (feature.properties['density'] !== null ? autolinker.link(String(feature.properties['density']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Sunrise</th>\
+                        <td>' + (feature.properties['sunrise_sh'] !== null ? autolinker.link(String(feature.properties['sunrise_sh']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Sunset</th>\
+                        <td>' + (feature.properties['sunset_sho'] !== null ? autolinker.link(String(feature.properties['sunset_sho']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Daylight (hours)</th>\
+                        <td>' + (feature.properties['day_length'] !== null ? autolinker.link(String(feature.properties['day_length']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Maximum Population</th>\
+                        <td>' + (feature.properties['max_pop'] !== null ? autolinker.link(String(feature.properties['max_pop']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_USCITIESPOPULATION_1_0(feature) {
+            if (feature.properties['population'] >= 49848.000000 && feature.properties['population'] <= 159443.000000 ) {
+                return {
+                pane: 'pane_USCITIESPOPULATION_1',
+                radius: 2.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(114,155,111,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['population'] >= 159443.000000 && feature.properties['population'] <= 351246.000000 ) {
+                return {
+                pane: 'pane_USCITIESPOPULATION_1',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(114,155,111,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['population'] >= 351246.000000 && feature.properties['population'] <= 703952.000000 ) {
+                return {
+                pane: 'pane_USCITIESPOPULATION_1',
+                radius: 6.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(114,155,111,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['population'] >= 703952.000000 && feature.properties['population'] <= 1203230.000000 ) {
+                return {
+                pane: 'pane_USCITIESPOPULATION_1',
+                radius: 8.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(114,155,111,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['population'] >= 1203230.000000 && feature.properties['population'] <= 1822394.000000 ) {
+                return {
+                pane: 'pane_USCITIESPOPULATION_1',
+                radius: 10.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(114,155,111,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['population'] >= 1822394.000000 && feature.properties['population'] <= 2559903.000000 ) {
+                return {
+                pane: 'pane_USCITIESPOPULATION_1',
+                radius: 12.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(114,155,111,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['population'] >= 2559903.000000 && feature.properties['population'] <= 4219697.000000 ) {
+                return {
+                pane: 'pane_USCITIESPOPULATION_1',
+                radius: 14.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(114,155,111,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['population'] >= 4219697.000000 && feature.properties['population'] <= 6445545.000000 ) {
+                return {
+                pane: 'pane_USCITIESPOPULATION_1',
+                radius: 16.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(114,155,111,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['population'] >= 6445545.000000 && feature.properties['population'] <= 12750807.000000 ) {
+                return {
+                pane: 'pane_USCITIESPOPULATION_1',
+                radius: 18.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(114,155,111,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['population'] >= 12750807.000000 && feature.properties['population'] <= 18713220.000000 ) {
+                return {
+                pane: 'pane_USCITIESPOPULATION_1',
+                radius: 20.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(114,155,111,1.0)',
+                interactive: true,
+            }
+            }
+        }
+        map.createPane('pane_USCITIESPOPULATION_1');
+        map.getPane('pane_USCITIESPOPULATION_1').style.zIndex = 401;
+        map.getPane('pane_USCITIESPOPULATION_1').style['mix-blend-mode'] = 'normal';
+        var layer_USCITIESPOPULATION_1 = new L.geoJson(json_USCITIESPOPULATION_1, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_USCITIESPOPULATION_1',
+            layerName: 'layer_USCITIESPOPULATION_1',
+            pane: 'pane_USCITIESPOPULATION_1',
+            onEachFeature: pop_USCITIESPOPULATION_1,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_USCITIESPOPULATION_1_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_USCITIESPOPULATION_1);
+        function pop_USCITIESSUNSETTIME_2(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">City</th>\
+                        <td>' + (feature.properties['city'] !== null ? autolinker.link(String(feature.properties['city']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">State</th>\
+                        <td>' + (feature.properties['state_id'] !== null ? autolinker.link(String(feature.properties['state_id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Population</th>\
+                        <td>' + (feature.properties['population'] !== null ? autolinker.link(String(feature.properties['population']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Population_density</th>\
+                        <td>' + (feature.properties['density'] !== null ? autolinker.link(String(feature.properties['density']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Sunrise</th>\
+                        <td>' + (feature.properties['sunrise_sh'] !== null ? autolinker.link(String(feature.properties['sunrise_sh']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Sunset</th>\
+                        <td>' + (feature.properties['sunset_sho'] !== null ? autolinker.link(String(feature.properties['sunset_sho']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Daylight (hours)</th>\
+                        <td>' + (feature.properties['day_length'] !== null ? autolinker.link(String(feature.properties['day_length']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Maximum Population</th>\
+                        <td>' + (feature.properties['max_pop'] !== null ? autolinker.link(String(feature.properties['max_pop']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_USCITIESSUNSETTIME_2_0(feature) {
+            if (feature.properties['q2wHide_daylight'] >= 8.300000 && feature.properties['q2wHide_daylight'] <= 8.600000 ) {
+                return {
+                pane: 'pane_USCITIESSUNSETTIME_2',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(48,18,59,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['q2wHide_daylight'] >= 8.600000 && feature.properties['q2wHide_daylight'] <= 8.900000 ) {
+                return {
+                pane: 'pane_USCITIESSUNSETTIME_2',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(70,98,216,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['q2wHide_daylight'] >= 8.900000 && feature.properties['q2wHide_daylight'] <= 9.100000 ) {
+                return {
+                pane: 'pane_USCITIESSUNSETTIME_2',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(53,171,248,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['q2wHide_daylight'] >= 9.100000 && feature.properties['q2wHide_daylight'] <= 9.300000 ) {
+                return {
+                pane: 'pane_USCITIESSUNSETTIME_2',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(27,229,181,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['q2wHide_daylight'] >= 9.300000 && feature.properties['q2wHide_daylight'] <= 9.500000 ) {
+                return {
+                pane: 'pane_USCITIESSUNSETTIME_2',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(116,254,93,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['q2wHide_daylight'] >= 9.500000 && feature.properties['q2wHide_daylight'] <= 9.700000 ) {
+                return {
+                pane: 'pane_USCITIESSUNSETTIME_2',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(201,239,52,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['q2wHide_daylight'] >= 9.700000 && feature.properties['q2wHide_daylight'] <= 9.900000 ) {
+                return {
+                pane: 'pane_USCITIESSUNSETTIME_2',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(251,185,56,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['q2wHide_daylight'] >= 9.900000 && feature.properties['q2wHide_daylight'] <= 10.100000 ) {
+                return {
+                pane: 'pane_USCITIESSUNSETTIME_2',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(245,105,24,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['q2wHide_daylight'] >= 10.100000 && feature.properties['q2wHide_daylight'] <= 10.300000 ) {
+                return {
+                pane: 'pane_USCITIESSUNSETTIME_2',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(201,41,3,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['q2wHide_daylight'] >= 10.300000 && feature.properties['q2wHide_daylight'] <= 10.600000 ) {
+                return {
+                pane: 'pane_USCITIESSUNSETTIME_2',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(122,4,3,1.0)',
+                interactive: true,
+            }
+            }
+        }
+        map.createPane('pane_USCITIESSUNSETTIME_2');
+        map.getPane('pane_USCITIESSUNSETTIME_2').style.zIndex = 402;
+        map.getPane('pane_USCITIESSUNSETTIME_2').style['mix-blend-mode'] = 'normal';
+        var layer_USCITIESSUNSETTIME_2 = new L.geoJson(json_USCITIESSUNSETTIME_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_USCITIESSUNSETTIME_2',
+            layerName: 'layer_USCITIESSUNSETTIME_2',
+            pane: 'pane_USCITIESSUNSETTIME_2',
+            onEachFeature: pop_USCITIESSUNSETTIME_2,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_USCITIESSUNSETTIME_2_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_USCITIESSUNSETTIME_2);
+        var overlaysTree = [
+            {label: 'US CITIES - SUNSET TIME<br /><table><tr><td style="text-align: center;"><img src="legend/USCITIESSUNSETTIME_2_83860.png" /></td><td>8.3 - 8.6</td></tr><tr><td style="text-align: center;"><img src="legend/USCITIESSUNSETTIME_2_86891.png" /></td><td>8.6 - 8.9</td></tr><tr><td style="text-align: center;"><img src="legend/USCITIESSUNSETTIME_2_89912.png" /></td><td>8.9 - 9.1</td></tr><tr><td style="text-align: center;"><img src="legend/USCITIESSUNSETTIME_2_91933.png" /></td><td>9.1 - 9.3</td></tr><tr><td style="text-align: center;"><img src="legend/USCITIESSUNSETTIME_2_93954.png" /></td><td>9.3 - 9.5</td></tr><tr><td style="text-align: center;"><img src="legend/USCITIESSUNSETTIME_2_95975.png" /></td><td>9.5 - 9.7</td></tr><tr><td style="text-align: center;"><img src="legend/USCITIESSUNSETTIME_2_97996.png" /></td><td>9.7 - 9.9</td></tr><tr><td style="text-align: center;"><img src="legend/USCITIESSUNSETTIME_2_991017.png" /></td><td>9.9 - 10.1</td></tr><tr><td style="text-align: center;"><img src="legend/USCITIESSUNSETTIME_2_1011038.png" /></td><td>10.1 - 10.3</td></tr><tr><td style="text-align: center;"><img src="legend/USCITIESSUNSETTIME_2_1031069.png" /></td><td>10.3 - 10.6</td></tr></table>', layer: layer_USCITIESSUNSETTIME_2},
+            {label: 'US CITIES - POPULATION<br /><table><tr><td style="text-align: center;"><img src="legend/USCITIESPOPULATION_1_498481594430.png" /></td><td>49848 - 159443</td></tr><tr><td style="text-align: center;"><img src="legend/USCITIESPOPULATION_1_1594433512461.png" /></td><td>159443 - 351246</td></tr><tr><td style="text-align: center;"><img src="legend/USCITIESPOPULATION_1_3512467039522.png" /></td><td>351246 - 703952</td></tr><tr><td style="text-align: center;"><img src="legend/USCITIESPOPULATION_1_70395212032303.png" /></td><td>703952 - 1203230</td></tr><tr><td style="text-align: center;"><img src="legend/USCITIESPOPULATION_1_120323018223944.png" /></td><td>1203230 - 1822394</td></tr><tr><td style="text-align: center;"><img src="legend/USCITIESPOPULATION_1_182239425599035.png" /></td><td>1822394 - 2559903</td></tr><tr><td style="text-align: center;"><img src="legend/USCITIESPOPULATION_1_255990342196976.png" /></td><td>2559903 - 4219697</td></tr><tr><td style="text-align: center;"><img src="legend/USCITIESPOPULATION_1_421969764455457.png" /></td><td>4219697 - 6445545</td></tr><tr><td style="text-align: center;"><img src="legend/USCITIESPOPULATION_1_6445545127508078.png" /></td><td>6445545 - 12750807</td></tr><tr><td style="text-align: center;"><img src="legend/USCITIESPOPULATION_1_12750807187132209.png" /></td><td>12750807 - 18713220</td></tr></table>', layer: layer_USCITIESPOPULATION_1},
+            {label: "OSM Standard", layer: layer_OSMStandard_0, radioGroup: 'bm' },]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: true,
+        });
+        lay.addTo(map);
+        setBounds();
+        map.addControl(new L.Control.Search({
+            layer: layer_USCITIESSUNSETTIME_2,
+            initial: false,
+            hideMarkerOnCollapse: true,
+            propertyName: 'city'}));
+        document.getElementsByClassName('search-button')[0].className +=
+         ' fa fa-binoculars';
+        var mapDiv = document.getElementById('map');
+        var row = document.createElement('div');
+        row.className="row";
+        row.id="all";
+        row.style.height = "100%";
+        var col1 = document.createElement('div');
+        col1.className="col9";
+        col1.id = "mapWindow";
+        col1.style.height = "99%";
+        col1.style.width = "80%";
+        col1.style.display = "inline-block";
+        var col2 = document.createElement('div');
+        col2.className="col3";
+        col2.id = "menu";
+        col2.style.display = "inline-block";
+        mapDiv.parentNode.insertBefore(row, mapDiv);
+        document.getElementById("all").appendChild(col1);
+        document.getElementById("all").appendChild(col2);
+        col1.appendChild(mapDiv)
+        var Filters = {"density": "int","population": "int","max_pop": "int","day_length": "real","sunset_sho": "str","state_id": "str","city": "str","sunrise_sh": "str"};
+        function filterFunc() {
+          map.eachLayer(function(lyr){
+          if ("options" in lyr && "dataVar" in lyr["options"]){
+            features = this[lyr["options"]["dataVar"]].features.slice(0);
+            try{
+              for (key in Filters){
+                keyS = key.replace(/[^a-zA-Z0-9_]/g, "")
+                if (Filters[key] == "str" || Filters[key] == "bool"){
+                  var selection = [];
+                  var options = document.getElementById("sel_" + keyS).options
+                  for (var i=0; i < options.length; i++) {
+                    if (options[i].selected) selection.push(options[i].value);
+                  }
+                    try{
+                      if (key in features[0].properties){
+                        for (i = features.length - 1;
+                          i >= 0; --i){
+                          if (selection.indexOf(
+                          features[i].properties[key])<0
+                          && selection.length>0) {
+                          features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                  }
+                }
+                if (Filters[key] == "int"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (parseInt(features[i].properties[key])
+                          < sliderVals[0]
+                          || parseInt(features[i].properties[key])
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "real"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (features[i].properties[key]
+                          < sliderVals[0]
+                          || features[i].properties[key]
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "date"
+                  || Filters[key] == "datetime"
+                  || Filters[key] == "time"){
+                  try{
+                    if (key in features[0].properties){
+                      HTMLkey = key.replace(/[&\/\\#,+()$~%.'":*?<>{} ]/g, '');
+                      startdate = document.getElementById("dat_" +
+                        HTMLkey + "_date1").value.replace(" ", "T");
+                      enddate = document.getElementById("dat_" +
+                        HTMLkey + "_date2").value.replace(" ", "T");
+                      for (i = features.length - 1; i >= 0; --i){
+                        if (features[i].properties[key] < startdate
+                          || features[i].properties[key] > enddate){
+                          features.splice(i,1);
+                        }
+                      }
+                    }
+                  } catch(err){
+                  }
+                }
+              }
+            } catch(err){
+            }
+          this[lyr["options"]["layerName"]].clearLayers();
+          this[lyr["options"]["layerName"]].addData(features);
+          }
+          })
+        }
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_density = document.createElement("div");
+            div_density.id = "div_density";
+            div_density.className = "slider";
+            document.getElementById("menu").appendChild(div_density);
+            var lab_density = document.createElement('div');
+            lab_density.innerHTML  = 'density: <span id="val_density"></span>';
+            lab_density.className = 'filterlabel';
+            document.getElementById("menu").appendChild(lab_density);
+            var reset_density = document.createElement('div');
+            reset_density.innerHTML = 'clear filter';
+            reset_density.className = 'filterlabel';
+            lab_density.className = 'filterlabel';
+            reset_density.onclick = function() {
+                sel_density.noUiSlider.reset();
+            };
+            document.getElementById("menu").appendChild(reset_density);
+            var sel_density = document.getElementById('div_density');
+            noUiSlider.create(sel_density, {
+                connect: true,
+                start: [78, 27545],
+                step: 1,
+                format: wNumb({
+                    decimals: 0,
+                    }),
+                range: {
+                min: 78,
+                max: 27545
+                }
+            });
+            sel_density.noUiSlider.on('update', function (values) {
+            filterVals =[];
+            for (value in values){
+            filterVals.push(parseInt(value))
+            }
+            val_density = document.getElementById('val_density');
+            val_density.innerHTML = values.join(' - ');
+                filterFunc()
+            });
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_population = document.createElement("div");
+            div_population.id = "div_population";
+            div_population.className = "slider";
+            document.getElementById("menu").appendChild(div_population);
+            var lab_population = document.createElement('div');
+            lab_population.innerHTML  = 'population: <span id="val_population"></span>';
+            lab_population.className = 'filterlabel';
+            document.getElementById("menu").appendChild(lab_population);
+            var reset_population = document.createElement('div');
+            reset_population.innerHTML = 'clear filter';
+            reset_population.className = 'filterlabel';
+            lab_population.className = 'filterlabel';
+            reset_population.onclick = function() {
+                sel_population.noUiSlider.reset();
+            };
+            document.getElementById("menu").appendChild(reset_population);
+            var sel_population = document.getElementById('div_population');
+            noUiSlider.create(sel_population, {
+                connect: true,
+                start: [49848, 18713220],
+                step: 1,
+                format: wNumb({
+                    decimals: 0,
+                    }),
+                range: {
+                min: 49848,
+                max: 18713220
+                }
+            });
+            sel_population.noUiSlider.on('update', function (values) {
+            filterVals =[];
+            for (value in values){
+            filterVals.push(parseInt(value))
+            }
+            val_population = document.getElementById('val_population');
+            val_population.innerHTML = values.join(' - ');
+                filterFunc()
+            });
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_max_pop = document.createElement("div");
+            div_max_pop.id = "div_max_pop";
+            div_max_pop.className = "slider";
+            document.getElementById("menu").appendChild(div_max_pop);
+            var lab_max_pop = document.createElement('div');
+            lab_max_pop.innerHTML  = 'max_pop: <span id="val_max_pop"></span>';
+            lab_max_pop.className = 'filterlabel';
+            document.getElementById("menu").appendChild(lab_max_pop);
+            var reset_max_pop = document.createElement('div');
+            reset_max_pop.innerHTML = 'clear filter';
+            reset_max_pop.className = 'filterlabel';
+            lab_max_pop.className = 'filterlabel';
+            reset_max_pop.onclick = function() {
+                sel_max_pop.noUiSlider.reset();
+            };
+            document.getElementById("menu").appendChild(reset_max_pop);
+            var sel_max_pop = document.getElementById('div_max_pop');
+            noUiSlider.create(sel_max_pop, {
+                connect: true,
+                start: [60, 19000],
+                step: 1,
+                format: wNumb({
+                    decimals: 0,
+                    }),
+                range: {
+                min: 60,
+                max: 19000
+                }
+            });
+            sel_max_pop.noUiSlider.on('update', function (values) {
+            filterVals =[];
+            for (value in values){
+            filterVals.push(parseInt(value))
+            }
+            val_max_pop = document.getElementById('val_max_pop');
+            val_max_pop.innerHTML = values.join(' - ');
+                filterFunc()
+            });
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_day_length = document.createElement("div");
+            div_day_length.id = "div_day_length";
+            div_day_length.className = "slider";
+            document.getElementById("menu").appendChild(div_day_length);
+            var lab_day_length = document.createElement('div');
+            lab_day_length.innerHTML  = 'day_length: <span id="val_day_length"></span>';
+            lab_day_length.className = 'filterlabel';
+            document.getElementById("menu").appendChild(lab_day_length);
+            var reset_day_length = document.createElement('div');
+            reset_day_length.innerHTML = 'clear filter';
+            reset_day_length.className = 'filterlabel';
+            lab_day_length.className = 'filterlabel';
+            reset_day_length.onclick = function() {
+                sel_day_length.noUiSlider.reset();
+            };
+            document.getElementById("menu").appendChild(reset_day_length);
+            var sel_day_length = document.getElementById('div_day_length');
+            noUiSlider.create(sel_day_length, {
+                connect: true,
+                start: [8.326666667, 10.59277778],
+                range: {
+                min: 8.326666667,
+                max: 10.59277778
+                }
+            });
+            sel_day_length.noUiSlider.on('update', function (values) {
+            val_day_length = document.getElementById('val_day_length');
+            val_day_length.innerHTML = values.join(' - ');
+                filterFunc()
+            });
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_sunset_sho = document.createElement('div');
+            div_sunset_sho.id = "div_sunset_sho";
+            div_sunset_sho.className= "filterselect";
+            document.getElementById("menu").appendChild(div_sunset_sho);
+            sel_sunset_sho = document.createElement('select');
+            sel_sunset_sho.multiple = true;
+            sel_sunset_sho.size = 10;
+            sel_sunset_sho.id = "sel_sunset_sho";
+            var sunset_sho_options_str = "<option value='' unselected></option>";
+            sel_sunset_sho.onchange = function(){filterFunc()};
+            sunset_sho_options_str  += '<option value="3:58 PM">3:58 PM</option>';
+            sunset_sho_options_str  += '<option value="3:59 PM">3:59 PM</option>';
+            sunset_sho_options_str  += '<option value="4:01 PM">4:01 PM</option>';
+            sunset_sho_options_str  += '<option value="4:02 PM">4:02 PM</option>';
+            sunset_sho_options_str  += '<option value="4:05 PM">4:05 PM</option>';
+            sunset_sho_options_str  += '<option value="4:06 PM">4:06 PM</option>';
+            sunset_sho_options_str  += '<option value="4:08 PM">4:08 PM</option>';
+            sunset_sho_options_str  += '<option value="4:12 PM">4:12 PM</option>';
+            sunset_sho_options_str  += '<option value="4:14 PM">4:14 PM</option>';
+            sunset_sho_options_str  += '<option value="4:15 PM">4:15 PM</option>';
+            sunset_sho_options_str  += '<option value="4:16 PM">4:16 PM</option>';
+            sunset_sho_options_str  += '<option value="4:17 PM">4:17 PM</option>';
+            sunset_sho_options_str  += '<option value="4:18 PM">4:18 PM</option>';
+            sunset_sho_options_str  += '<option value="4:19 PM">4:19 PM</option>';
+            sunset_sho_options_str  += '<option value="4:20 PM">4:20 PM</option>';
+            sunset_sho_options_str  += '<option value="4:21 PM">4:21 PM</option>';
+            sunset_sho_options_str  += '<option value="4:22 PM">4:22 PM</option>';
+            sunset_sho_options_str  += '<option value="4:23 PM">4:23 PM</option>';
+            sunset_sho_options_str  += '<option value="4:24 PM">4:24 PM</option>';
+            sunset_sho_options_str  += '<option value="4:25 PM">4:25 PM</option>';
+            sunset_sho_options_str  += '<option value="4:26 PM">4:26 PM</option>';
+            sunset_sho_options_str  += '<option value="4:27 PM">4:27 PM</option>';
+            sunset_sho_options_str  += '<option value="4:28 PM">4:28 PM</option>';
+            sunset_sho_options_str  += '<option value="4:29 PM">4:29 PM</option>';
+            sunset_sho_options_str  += '<option value="4:30 PM">4:30 PM</option>';
+            sunset_sho_options_str  += '<option value="4:31 PM">4:31 PM</option>';
+            sunset_sho_options_str  += '<option value="4:32 PM">4:32 PM</option>';
+            sunset_sho_options_str  += '<option value="4:33 PM">4:33 PM</option>';
+            sunset_sho_options_str  += '<option value="4:34 PM">4:34 PM</option>';
+            sunset_sho_options_str  += '<option value="4:35 PM">4:35 PM</option>';
+            sunset_sho_options_str  += '<option value="4:36 PM">4:36 PM</option>';
+            sunset_sho_options_str  += '<option value="4:37 PM">4:37 PM</option>';
+            sunset_sho_options_str  += '<option value="4:38 PM">4:38 PM</option>';
+            sunset_sho_options_str  += '<option value="4:39 PM">4:39 PM</option>';
+            sunset_sho_options_str  += '<option value="4:40 PM">4:40 PM</option>';
+            sunset_sho_options_str  += '<option value="4:41 PM">4:41 PM</option>';
+            sunset_sho_options_str  += '<option value="4:42 PM">4:42 PM</option>';
+            sunset_sho_options_str  += '<option value="4:43 PM">4:43 PM</option>';
+            sunset_sho_options_str  += '<option value="4:44 PM">4:44 PM</option>';
+            sunset_sho_options_str  += '<option value="4:45 PM">4:45 PM</option>';
+            sunset_sho_options_str  += '<option value="4:46 PM">4:46 PM</option>';
+            sunset_sho_options_str  += '<option value="4:47 PM">4:47 PM</option>';
+            sunset_sho_options_str  += '<option value="4:48 PM">4:48 PM</option>';
+            sunset_sho_options_str  += '<option value="4:49 PM">4:49 PM</option>';
+            sunset_sho_options_str  += '<option value="4:50 PM">4:50 PM</option>';
+            sunset_sho_options_str  += '<option value="4:51 PM">4:51 PM</option>';
+            sunset_sho_options_str  += '<option value="4:52 PM">4:52 PM</option>';
+            sunset_sho_options_str  += '<option value="4:53 PM">4:53 PM</option>';
+            sunset_sho_options_str  += '<option value="4:54 PM">4:54 PM</option>';
+            sunset_sho_options_str  += '<option value="4:55 PM">4:55 PM</option>';
+            sunset_sho_options_str  += '<option value="4:56 PM">4:56 PM</option>';
+            sunset_sho_options_str  += '<option value="4:57 PM">4:57 PM</option>';
+            sunset_sho_options_str  += '<option value="4:58 PM">4:58 PM</option>';
+            sunset_sho_options_str  += '<option value="4:59 PM">4:59 PM</option>';
+            sunset_sho_options_str  += '<option value="5:00 PM">5:00 PM</option>';
+            sunset_sho_options_str  += '<option value="5:01 PM">5:01 PM</option>';
+            sunset_sho_options_str  += '<option value="5:02 PM">5:02 PM</option>';
+            sunset_sho_options_str  += '<option value="5:03 PM">5:03 PM</option>';
+            sunset_sho_options_str  += '<option value="5:04 PM">5:04 PM</option>';
+            sunset_sho_options_str  += '<option value="5:05 PM">5:05 PM</option>';
+            sunset_sho_options_str  += '<option value="5:06 PM">5:06 PM</option>';
+            sunset_sho_options_str  += '<option value="5:07 PM">5:07 PM</option>';
+            sunset_sho_options_str  += '<option value="5:08 PM">5:08 PM</option>';
+            sunset_sho_options_str  += '<option value="5:09 PM">5:09 PM</option>';
+            sunset_sho_options_str  += '<option value="5:10 PM">5:10 PM</option>';
+            sunset_sho_options_str  += '<option value="5:11 PM">5:11 PM</option>';
+            sunset_sho_options_str  += '<option value="5:12 PM">5:12 PM</option>';
+            sunset_sho_options_str  += '<option value="5:13 PM">5:13 PM</option>';
+            sunset_sho_options_str  += '<option value="5:14 PM">5:14 PM</option>';
+            sunset_sho_options_str  += '<option value="5:15 PM">5:15 PM</option>';
+            sunset_sho_options_str  += '<option value="5:16 PM">5:16 PM</option>';
+            sunset_sho_options_str  += '<option value="5:17 PM">5:17 PM</option>';
+            sunset_sho_options_str  += '<option value="5:18 PM">5:18 PM</option>';
+            sunset_sho_options_str  += '<option value="5:19 PM">5:19 PM</option>';
+            sunset_sho_options_str  += '<option value="5:20 PM">5:20 PM</option>';
+            sunset_sho_options_str  += '<option value="5:21 PM">5:21 PM</option>';
+            sunset_sho_options_str  += '<option value="5:22 PM">5:22 PM</option>';
+            sunset_sho_options_str  += '<option value="5:23 PM">5:23 PM</option>';
+            sunset_sho_options_str  += '<option value="5:24 PM">5:24 PM</option>';
+            sunset_sho_options_str  += '<option value="5:25 PM">5:25 PM</option>';
+            sunset_sho_options_str  += '<option value="5:26 PM">5:26 PM</option>';
+            sunset_sho_options_str  += '<option value="5:27 PM">5:27 PM</option>';
+            sunset_sho_options_str  += '<option value="5:28 PM">5:28 PM</option>';
+            sunset_sho_options_str  += '<option value="5:29 PM">5:29 PM</option>';
+            sunset_sho_options_str  += '<option value="5:30 PM">5:30 PM</option>';
+            sunset_sho_options_str  += '<option value="5:31 PM">5:31 PM</option>';
+            sunset_sho_options_str  += '<option value="5:32 PM">5:32 PM</option>';
+            sunset_sho_options_str  += '<option value="5:33 PM">5:33 PM</option>';
+            sunset_sho_options_str  += '<option value="5:34 PM">5:34 PM</option>';
+            sunset_sho_options_str  += '<option value="5:35 PM">5:35 PM</option>';
+            sunset_sho_options_str  += '<option value="5:36 PM">5:36 PM</option>';
+            sunset_sho_options_str  += '<option value="5:37 PM">5:37 PM</option>';
+            sunset_sho_options_str  += '<option value="5:38 PM">5:38 PM</option>';
+            sunset_sho_options_str  += '<option value="5:39 PM">5:39 PM</option>';
+            sunset_sho_options_str  += '<option value="5:40 PM">5:40 PM</option>';
+            sunset_sho_options_str  += '<option value="5:41 PM">5:41 PM</option>';
+            sunset_sho_options_str  += '<option value="5:42 PM">5:42 PM</option>';
+            sunset_sho_options_str  += '<option value="5:44 PM">5:44 PM</option>';
+            sunset_sho_options_str  += '<option value="5:45 PM">5:45 PM</option>';
+            sunset_sho_options_str  += '<option value="5:46 PM">5:46 PM</option>';
+            sunset_sho_options_str  += '<option value="5:47 PM">5:47 PM</option>';
+            sunset_sho_options_str  += '<option value="5:49 PM">5:49 PM</option>';
+            sunset_sho_options_str  += '<option value="5:50 PM">5:50 PM</option>';
+            sel_sunset_sho.innerHTML = sunset_sho_options_str;
+            div_sunset_sho.appendChild(sel_sunset_sho);
+            var lab_sunset_sho = document.createElement('div');
+            lab_sunset_sho.innerHTML = 'sunset_sho';
+            lab_sunset_sho.className = 'filterlabel';
+            div_sunset_sho.appendChild(lab_sunset_sho);
+            var reset_sunset_sho = document.createElement('div');
+            reset_sunset_sho.innerHTML = 'clear filter';
+            reset_sunset_sho.className = 'filterlabel';
+            reset_sunset_sho.onclick = function() {
+                var options = document.getElementById("sel_sunset_sho").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_sunset_sho.appendChild(reset_sunset_sho);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_state_id = document.createElement('div');
+            div_state_id.id = "div_state_id";
+            div_state_id.className= "filterselect";
+            document.getElementById("menu").appendChild(div_state_id);
+            sel_state_id = document.createElement('select');
+            sel_state_id.multiple = true;
+            sel_state_id.size = 10;
+            sel_state_id.id = "sel_state_id";
+            var state_id_options_str = "<option value='' unselected></option>";
+            sel_state_id.onchange = function(){filterFunc()};
+            state_id_options_str  += '<option value="AL">AL</option>';
+            state_id_options_str  += '<option value="AR">AR</option>';
+            state_id_options_str  += '<option value="AZ">AZ</option>';
+            state_id_options_str  += '<option value="CA">CA</option>';
+            state_id_options_str  += '<option value="CO">CO</option>';
+            state_id_options_str  += '<option value="CT">CT</option>';
+            state_id_options_str  += '<option value="DC">DC</option>';
+            state_id_options_str  += '<option value="DE">DE</option>';
+            state_id_options_str  += '<option value="FL">FL</option>';
+            state_id_options_str  += '<option value="GA">GA</option>';
+            state_id_options_str  += '<option value="IA">IA</option>';
+            state_id_options_str  += '<option value="ID">ID</option>';
+            state_id_options_str  += '<option value="IL">IL</option>';
+            state_id_options_str  += '<option value="IN">IN</option>';
+            state_id_options_str  += '<option value="KS">KS</option>';
+            state_id_options_str  += '<option value="KY">KY</option>';
+            state_id_options_str  += '<option value="LA">LA</option>';
+            state_id_options_str  += '<option value="MA">MA</option>';
+            state_id_options_str  += '<option value="MD">MD</option>';
+            state_id_options_str  += '<option value="ME">ME</option>';
+            state_id_options_str  += '<option value="MI">MI</option>';
+            state_id_options_str  += '<option value="MN">MN</option>';
+            state_id_options_str  += '<option value="MO">MO</option>';
+            state_id_options_str  += '<option value="MS">MS</option>';
+            state_id_options_str  += '<option value="MT">MT</option>';
+            state_id_options_str  += '<option value="NC">NC</option>';
+            state_id_options_str  += '<option value="ND">ND</option>';
+            state_id_options_str  += '<option value="NE">NE</option>';
+            state_id_options_str  += '<option value="NH">NH</option>';
+            state_id_options_str  += '<option value="NJ">NJ</option>';
+            state_id_options_str  += '<option value="NM">NM</option>';
+            state_id_options_str  += '<option value="NV">NV</option>';
+            state_id_options_str  += '<option value="NY">NY</option>';
+            state_id_options_str  += '<option value="OH">OH</option>';
+            state_id_options_str  += '<option value="OK">OK</option>';
+            state_id_options_str  += '<option value="OR">OR</option>';
+            state_id_options_str  += '<option value="PA">PA</option>';
+            state_id_options_str  += '<option value="RI">RI</option>';
+            state_id_options_str  += '<option value="SC">SC</option>';
+            state_id_options_str  += '<option value="SD">SD</option>';
+            state_id_options_str  += '<option value="TN">TN</option>';
+            state_id_options_str  += '<option value="TX">TX</option>';
+            state_id_options_str  += '<option value="UT">UT</option>';
+            state_id_options_str  += '<option value="VA">VA</option>';
+            state_id_options_str  += '<option value="VT">VT</option>';
+            state_id_options_str  += '<option value="WA">WA</option>';
+            state_id_options_str  += '<option value="WI">WI</option>';
+            state_id_options_str  += '<option value="WV">WV</option>';
+            state_id_options_str  += '<option value="WY">WY</option>';
+            sel_state_id.innerHTML = state_id_options_str;
+            div_state_id.appendChild(sel_state_id);
+            var lab_state_id = document.createElement('div');
+            lab_state_id.innerHTML = 'state_id';
+            lab_state_id.className = 'filterlabel';
+            div_state_id.appendChild(lab_state_id);
+            var reset_state_id = document.createElement('div');
+            reset_state_id.innerHTML = 'clear filter';
+            reset_state_id.className = 'filterlabel';
+            reset_state_id.onclick = function() {
+                var options = document.getElementById("sel_state_id").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_state_id.appendChild(reset_state_id);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_city = document.createElement('div');
+            div_city.id = "div_city";
+            div_city.className= "filterselect";
+            document.getElementById("menu").appendChild(div_city);
+            sel_city = document.createElement('select');
+            sel_city.multiple = true;
+            sel_city.size = 10;
+            sel_city.id = "sel_city";
+            var city_options_str = "<option value='' unselected></option>";
+            sel_city.onchange = function(){filterFunc()};
+            city_options_str  += '<option value="Abilene">Abilene</option>';
+            city_options_str  += '<option value="Akron">Akron</option>';
+            city_options_str  += '<option value="Alafaya">Alafaya</option>';
+            city_options_str  += '<option value="Alameda">Alameda</option>';
+            city_options_str  += '<option value="Albany">Albany</option>';
+            city_options_str  += '<option value="Albuquerque">Albuquerque</option>';
+            city_options_str  += '<option value="Alexandria">Alexandria</option>';
+            city_options_str  += '<option value="Alhambra">Alhambra</option>';
+            city_options_str  += '<option value="Aliso Viejo">Aliso Viejo</option>';
+            city_options_str  += '<option value="Allen">Allen</option>';
+            city_options_str  += '<option value="Allentown">Allentown</option>';
+            city_options_str  += '<option value="Aloha">Aloha</option>';
+            city_options_str  += '<option value="Alpharetta">Alpharetta</option>';
+            city_options_str  += '<option value="Alton">Alton</option>';
+            city_options_str  += '<option value="Altoona">Altoona</option>';
+            city_options_str  += '<option value="Amarillo">Amarillo</option>';
+            city_options_str  += '<option value="Ames">Ames</option>';
+            city_options_str  += '<option value="Anaheim">Anaheim</option>';
+            city_options_str  += '<option value="Anderson">Anderson</option>';
+            city_options_str  += '<option value="Ankeny">Ankeny</option>';
+            city_options_str  += '<option value="Ann Arbor">Ann Arbor</option>';
+            city_options_str  += '<option value="Anniston">Anniston</option>';
+            city_options_str  += '<option value="Antioch">Antioch</option>';
+            city_options_str  += '<option value="Apex">Apex</option>';
+            city_options_str  += '<option value="Apopka">Apopka</option>';
+            city_options_str  += '<option value="Apple Valley">Apple Valley</option>';
+            city_options_str  += '<option value="Appleton">Appleton</option>';
+            city_options_str  += '<option value="Arcadia">Arcadia</option>';
+            city_options_str  += '<option value="Arden-Arcade">Arden-Arcade</option>';
+            city_options_str  += '<option value="Arlington">Arlington</option>';
+            city_options_str  += '<option value="Arlington Heights">Arlington Heights</option>';
+            city_options_str  += '<option value="Arroyo Grande">Arroyo Grande</option>';
+            city_options_str  += '<option value="Arvada">Arvada</option>';
+            city_options_str  += '<option value="Ashburn">Ashburn</option>';
+            city_options_str  += '<option value="Asheville">Asheville</option>';
+            city_options_str  += '<option value="Aspen Hill">Aspen Hill</option>';
+            city_options_str  += '<option value="Atascocita">Atascocita</option>';
+            city_options_str  += '<option value="Athens">Athens</option>';
+            city_options_str  += '<option value="Atlanta">Atlanta</option>';
+            city_options_str  += '<option value="Atlantic City">Atlantic City</option>';
+            city_options_str  += '<option value="Auburn">Auburn</option>';
+            city_options_str  += '<option value="Augusta">Augusta</option>';
+            city_options_str  += '<option value="Aurora">Aurora</option>';
+            city_options_str  += '<option value="Austin">Austin</option>';
+            city_options_str  += '<option value="Avondale">Avondale</option>';
+            city_options_str  += '<option value="Azusa">Azusa</option>';
+            city_options_str  += '<option value="Bakersfield">Bakersfield</option>';
+            city_options_str  += '<option value="Baldwin Park">Baldwin Park</option>';
+            city_options_str  += '<option value="Baltimore">Baltimore</option>';
+            city_options_str  += '<option value="Bangor">Bangor</option>';
+            city_options_str  += '<option value="Barnstable">Barnstable</option>';
+            city_options_str  += '<option value="Bartlett">Bartlett</option>';
+            city_options_str  += '<option value="Baton Rouge">Baton Rouge</option>';
+            city_options_str  += '<option value="Battle Creek">Battle Creek</option>';
+            city_options_str  += '<option value="Bay City">Bay City</option>';
+            city_options_str  += '<option value="Bayonne">Bayonne</option>';
+            city_options_str  += '<option value="Baytown">Baytown</option>';
+            city_options_str  += '<option value="Beaufort">Beaufort</option>';
+            city_options_str  += '<option value="Beaumont">Beaumont</option>';
+            city_options_str  += '<option value="Beaverton">Beaverton</option>';
+            city_options_str  += '<option value="Beckley">Beckley</option>';
+            city_options_str  += '<option value="Bellevue">Bellevue</option>';
+            city_options_str  += '<option value="Bellflower">Bellflower</option>';
+            city_options_str  += '<option value="Bellingham">Bellingham</option>';
+            city_options_str  += '<option value="Beloit">Beloit</option>';
+            city_options_str  += '<option value="Bend">Bend</option>';
+            city_options_str  += '<option value="Benton Harbor">Benton Harbor</option>';
+            city_options_str  += '<option value="Bentonville">Bentonville</option>';
+            city_options_str  += '<option value="Berkeley">Berkeley</option>';
+            city_options_str  += '<option value="Berwyn">Berwyn</option>';
+            city_options_str  += '<option value="Bethesda">Bethesda</option>';
+            city_options_str  += '<option value="Bethlehem">Bethlehem</option>';
+            city_options_str  += '<option value="Billings">Billings</option>';
+            city_options_str  += '<option value="Binghamton">Binghamton</option>';
+            city_options_str  += '<option value="Birmingham">Birmingham</option>';
+            city_options_str  += '<option value="Bismarck">Bismarck</option>';
+            city_options_str  += '<option value="Blacksburg">Blacksburg</option>';
+            city_options_str  += '<option value="Blaine">Blaine</option>';
+            city_options_str  += '<option value="Bloomington">Bloomington</option>';
+            city_options_str  += '<option value="Blue Springs">Blue Springs</option>';
+            city_options_str  += '<option value="Boca Raton">Boca Raton</option>';
+            city_options_str  += '<option value="Boise">Boise</option>';
+            city_options_str  += '<option value="Bolingbrook">Bolingbrook</option>';
+            city_options_str  += '<option value="Bonita Springs">Bonita Springs</option>';
+            city_options_str  += '<option value="Bossier City">Bossier City</option>';
+            city_options_str  += '<option value="Boston">Boston</option>';
+            city_options_str  += '<option value="Boulder">Boulder</option>';
+            city_options_str  += '<option value="Bowie">Bowie</option>';
+            city_options_str  += '<option value="Bowling Green">Bowling Green</option>';
+            city_options_str  += '<option value="Boynton Beach">Boynton Beach</option>';
+            city_options_str  += '<option value="Bozeman">Bozeman</option>';
+            city_options_str  += '<option value="Bradenton">Bradenton</option>';
+            city_options_str  += '<option value="Brandon">Brandon</option>';
+            city_options_str  += '<option value="Bremerton">Bremerton</option>';
+            city_options_str  += '<option value="Brentwood">Brentwood</option>';
+            city_options_str  += '<option value="Bridgeport">Bridgeport</option>';
+            city_options_str  += '<option value="Bristol">Bristol</option>';
+            city_options_str  += '<option value="Brockton">Brockton</option>';
+            city_options_str  += '<option value="Broken Arrow">Broken Arrow</option>';
+            city_options_str  += '<option value="Bronx">Bronx</option>';
+            city_options_str  += '<option value="Brookhaven">Brookhaven</option>';
+            city_options_str  += '<option value="Brooklyn">Brooklyn</option>';
+            city_options_str  += '<option value="Brooklyn Park">Brooklyn Park</option>';
+            city_options_str  += '<option value="Broomfield">Broomfield</option>';
+            city_options_str  += '<option value="Brownsville">Brownsville</option>';
+            city_options_str  += '<option value="Brunswick">Brunswick</option>';
+            city_options_str  += '<option value="Bryan">Bryan</option>';
+            city_options_str  += '<option value="Buckeye">Buckeye</option>';
+            city_options_str  += '<option value="Buena Park">Buena Park</option>';
+            city_options_str  += '<option value="Buffalo">Buffalo</option>';
+            city_options_str  += '<option value="Bullhead City">Bullhead City</option>';
+            city_options_str  += '<option value="Burbank">Burbank</option>';
+            city_options_str  += '<option value="Burien">Burien</option>';
+            city_options_str  += '<option value="Burlington">Burlington</option>';
+            city_options_str  += '<option value="Burnsville">Burnsville</option>';
+            city_options_str  += '<option value="Caldwell">Caldwell</option>';
+            city_options_str  += '<option value="Camarillo">Camarillo</option>';
+            city_options_str  += '<option value="Cambridge">Cambridge</option>';
+            city_options_str  += '<option value="Camden">Camden</option>';
+            city_options_str  += '<option value="Canton">Canton</option>';
+            city_options_str  += '<option value="Cape Coral">Cape Coral</option>';
+            city_options_str  += '<option value="Cape Girardeau">Cape Girardeau</option>';
+            city_options_str  += '<option value="Carbondale">Carbondale</option>';
+            city_options_str  += '<option value="Carlsbad">Carlsbad</option>';
+            city_options_str  += '<option value="Carmel">Carmel</option>';
+            city_options_str  += '<option value="Carmichael">Carmichael</option>';
+            city_options_str  += '<option value="Carrollton">Carrollton</option>';
+            city_options_str  += '<option value="Carson">Carson</option>';
+            city_options_str  += '<option value="Carson City">Carson City</option>';
+            city_options_str  += '<option value="Cartersville">Cartersville</option>';
+            city_options_str  += '<option value="Cary">Cary</option>';
+            city_options_str  += '<option value="Casa Grande">Casa Grande</option>';
+            city_options_str  += '<option value="Casas Adobes">Casas Adobes</option>';
+            city_options_str  += '<option value="Casper">Casper</option>';
+            city_options_str  += '<option value="Castle Rock">Castle Rock</option>';
+            city_options_str  += '<option value="Castro Valley">Castro Valley</option>';
+            city_options_str  += '<option value="Catalina Foothills">Catalina Foothills</option>';
+            city_options_str  += '<option value="Cathedral City">Cathedral City</option>';
+            city_options_str  += '<option value="Cedar Park">Cedar Park</option>';
+            city_options_str  += '<option value="Cedar Rapids">Cedar Rapids</option>';
+            city_options_str  += '<option value="Centennial">Centennial</option>';
+            city_options_str  += '<option value="Centreville">Centreville</option>';
+            city_options_str  += '<option value="Cerritos">Cerritos</option>';
+            city_options_str  += '<option value="Chambersburg">Chambersburg</option>';
+            city_options_str  += '<option value="Champaign">Champaign</option>';
+            city_options_str  += '<option value="Chandler">Chandler</option>';
+            city_options_str  += '<option value="Chapel Hill">Chapel Hill</option>';
+            city_options_str  += '<option value="Charleston">Charleston</option>';
+            city_options_str  += '<option value="Charlotte">Charlotte</option>';
+            city_options_str  += '<option value="Charlottesville">Charlottesville</option>';
+            city_options_str  += '<option value="Chattanooga">Chattanooga</option>';
+            city_options_str  += '<option value="Chesapeake">Chesapeake</option>';
+            city_options_str  += '<option value="Cheyenne">Cheyenne</option>';
+            city_options_str  += '<option value="Chicago">Chicago</option>';
+            city_options_str  += '<option value="Chico">Chico</option>';
+            city_options_str  += '<option value="Chicopee">Chicopee</option>';
+            city_options_str  += '<option value="Chino">Chino</option>';
+            city_options_str  += '<option value="Chino Hills">Chino Hills</option>';
+            city_options_str  += '<option value="Chula Vista">Chula Vista</option>';
+            city_options_str  += '<option value="Cicero">Cicero</option>';
+            city_options_str  += '<option value="Cincinnati">Cincinnati</option>';
+            city_options_str  += '<option value="Citrus Heights">Citrus Heights</option>';
+            city_options_str  += '<option value="Clarksville">Clarksville</option>';
+            city_options_str  += '<option value="Clearwater">Clearwater</option>';
+            city_options_str  += '<option value="Cleveland">Cleveland</option>';
+            city_options_str  += '<option value="Clifton">Clifton</option>';
+            city_options_str  += '<option value="Clovis">Clovis</option>';
+            city_options_str  += '<option value="Coconut Creek">Coconut Creek</option>';
+            city_options_str  += '<option value="Coeur d&apos;Alene">Coeur d&apos;Alene</option>';
+            city_options_str  += '<option value="College Station">College Station</option>';
+            city_options_str  += '<option value="Collierville">Collierville</option>';
+            city_options_str  += '<option value="Colorado Springs">Colorado Springs</option>';
+            city_options_str  += '<option value="Colton">Colton</option>';
+            city_options_str  += '<option value="Columbia">Columbia</option>';
+            city_options_str  += '<option value="Columbus">Columbus</option>';
+            city_options_str  += '<option value="Commerce City">Commerce City</option>';
+            city_options_str  += '<option value="Compton">Compton</option>';
+            city_options_str  += '<option value="Concord">Concord</option>';
+            city_options_str  += '<option value="Conroe">Conroe</option>';
+            city_options_str  += '<option value="Conway">Conway</option>';
+            city_options_str  += '<option value="Cookeville">Cookeville</option>';
+            city_options_str  += '<option value="Coon Rapids">Coon Rapids</option>';
+            city_options_str  += '<option value="Coral Springs">Coral Springs</option>';
+            city_options_str  += '<option value="Corona">Corona</option>';
+            city_options_str  += '<option value="Corpus Christi">Corpus Christi</option>';
+            city_options_str  += '<option value="Corvallis">Corvallis</option>';
+            city_options_str  += '<option value="Costa Mesa">Costa Mesa</option>';
+            city_options_str  += '<option value="Council Bluffs">Council Bluffs</option>';
+            city_options_str  += '<option value="Country Club">Country Club</option>';
+            city_options_str  += '<option value="Cranston">Cranston</option>';
+            city_options_str  += '<option value="Cupertino">Cupertino</option>';
+            city_options_str  += '<option value="Dale City">Dale City</option>';
+            city_options_str  += '<option value="Dallas">Dallas</option>';
+            city_options_str  += '<option value="Dalton">Dalton</option>';
+            city_options_str  += '<option value="Daly City">Daly City</option>';
+            city_options_str  += '<option value="Danbury">Danbury</option>';
+            city_options_str  += '<option value="Daphne">Daphne</option>';
+            city_options_str  += '<option value="Davenport">Davenport</option>';
+            city_options_str  += '<option value="Davie">Davie</option>';
+            city_options_str  += '<option value="Davis">Davis</option>';
+            city_options_str  += '<option value="Dayton">Dayton</option>';
+            city_options_str  += '<option value="Daytona Beach">Daytona Beach</option>';
+            city_options_str  += '<option value="DeKalb">DeKalb</option>';
+            city_options_str  += '<option value="DeSoto">DeSoto</option>';
+            city_options_str  += '<option value="Dearborn">Dearborn</option>';
+            city_options_str  += '<option value="Dearborn Heights">Dearborn Heights</option>';
+            city_options_str  += '<option value="Decatur">Decatur</option>';
+            city_options_str  += '<option value="Deerfield Beach">Deerfield Beach</option>';
+            city_options_str  += '<option value="Delano">Delano</option>';
+            city_options_str  += '<option value="Delray Beach">Delray Beach</option>';
+            city_options_str  += '<option value="Deltona">Deltona</option>';
+            city_options_str  += '<option value="Denton">Denton</option>';
+            city_options_str  += '<option value="Denver">Denver</option>';
+            city_options_str  += '<option value="Des Moines">Des Moines</option>';
+            city_options_str  += '<option value="Des Plaines">Des Plaines</option>';
+            city_options_str  += '<option value="Detroit">Detroit</option>';
+            city_options_str  += '<option value="Diamond Bar">Diamond Bar</option>';
+            city_options_str  += '<option value="Doral">Doral</option>';
+            city_options_str  += '<option value="Dothan">Dothan</option>';
+            city_options_str  += '<option value="Dover">Dover</option>';
+            city_options_str  += '<option value="Downey">Downey</option>';
+            city_options_str  += '<option value="Dublin">Dublin</option>';
+            city_options_str  += '<option value="Dubuque">Dubuque</option>';
+            city_options_str  += '<option value="Duluth">Duluth</option>';
+            city_options_str  += '<option value="Dundalk">Dundalk</option>';
+            city_options_str  += '<option value="Durham">Durham</option>';
+            city_options_str  += '<option value="Eagan">Eagan</option>';
+            city_options_str  += '<option value="Eagle Pass">Eagle Pass</option>';
+            city_options_str  += '<option value="East Los Angeles">East Los Angeles</option>';
+            city_options_str  += '<option value="East Orange">East Orange</option>';
+            city_options_str  += '<option value="East Stroudsburg">East Stroudsburg</option>';
+            city_options_str  += '<option value="Eastvale">Eastvale</option>';
+            city_options_str  += '<option value="Eau Claire">Eau Claire</option>';
+            city_options_str  += '<option value="Eden Prairie">Eden Prairie</option>';
+            city_options_str  += '<option value="Edina">Edina</option>';
+            city_options_str  += '<option value="Edinburg">Edinburg</option>';
+            city_options_str  += '<option value="Edmond">Edmond</option>';
+            city_options_str  += '<option value="El Cajon">El Cajon</option>';
+            city_options_str  += '<option value="El Centro">El Centro</option>';
+            city_options_str  += '<option value="El Monte">El Monte</option>';
+            city_options_str  += '<option value="El Paso">El Paso</option>';
+            city_options_str  += '<option value="El Paso de Robles">El Paso de Robles</option>';
+            city_options_str  += '<option value="Elgin">Elgin</option>';
+            city_options_str  += '<option value="Elizabeth">Elizabeth</option>';
+            city_options_str  += '<option value="Elizabethtown">Elizabethtown</option>';
+            city_options_str  += '<option value="Elk Grove">Elk Grove</option>';
+            city_options_str  += '<option value="Elkhart">Elkhart</option>';
+            city_options_str  += '<option value="Ellicott City">Ellicott City</option>';
+            city_options_str  += '<option value="Elmira">Elmira</option>';
+            city_options_str  += '<option value="Elyria">Elyria</option>';
+            city_options_str  += '<option value="Encinitas">Encinitas</option>';
+            city_options_str  += '<option value="Enterprise">Enterprise</option>';
+            city_options_str  += '<option value="Erie">Erie</option>';
+            city_options_str  += '<option value="Escondido">Escondido</option>';
+            city_options_str  += '<option value="Eugene">Eugene</option>';
+            city_options_str  += '<option value="Euless">Euless</option>';
+            city_options_str  += '<option value="Evanston">Evanston</option>';
+            city_options_str  += '<option value="Evansville">Evansville</option>';
+            city_options_str  += '<option value="Everett">Everett</option>';
+            city_options_str  += '<option value="Fairfield">Fairfield</option>';
+            city_options_str  += '<option value="Fall River">Fall River</option>';
+            city_options_str  += '<option value="Fargo">Fargo</option>';
+            city_options_str  += '<option value="Farmington">Farmington</option>';
+            city_options_str  += '<option value="Farmington Hills">Farmington Hills</option>';
+            city_options_str  += '<option value="Fayetteville">Fayetteville</option>';
+            city_options_str  += '<option value="Federal Way">Federal Way</option>';
+            city_options_str  += '<option value="Fishers">Fishers</option>';
+            city_options_str  += '<option value="Flagstaff">Flagstaff</option>';
+            city_options_str  += '<option value="Flint">Flint</option>';
+            city_options_str  += '<option value="Florence">Florence</option>';
+            city_options_str  += '<option value="Florence-Graham">Florence-Graham</option>';
+            city_options_str  += '<option value="Florissant">Florissant</option>';
+            city_options_str  += '<option value="Flower Mound">Flower Mound</option>';
+            city_options_str  += '<option value="Folsom">Folsom</option>';
+            city_options_str  += '<option value="Fond du Lac">Fond du Lac</option>';
+            city_options_str  += '<option value="Fontana">Fontana</option>';
+            city_options_str  += '<option value="Forney">Forney</option>';
+            city_options_str  += '<option value="Fort Collins">Fort Collins</option>';
+            city_options_str  += '<option value="Fort Lauderdale">Fort Lauderdale</option>';
+            city_options_str  += '<option value="Fort Myers">Fort Myers</option>';
+            city_options_str  += '<option value="Fort Smith">Fort Smith</option>';
+            city_options_str  += '<option value="Fort Wayne">Fort Wayne</option>';
+            city_options_str  += '<option value="Fort Worth">Fort Worth</option>';
+            city_options_str  += '<option value="Fountain Valley">Fountain Valley</option>';
+            city_options_str  += '<option value="Fountainebleau">Fountainebleau</option>';
+            city_options_str  += '<option value="Framingham">Framingham</option>';
+            city_options_str  += '<option value="Franklin">Franklin</option>';
+            city_options_str  += '<option value="Frederick">Frederick</option>';
+            city_options_str  += '<option value="Fredericksburg">Fredericksburg</option>';
+            city_options_str  += '<option value="Fremont">Fremont</option>';
+            city_options_str  += '<option value="Fresno">Fresno</option>';
+            city_options_str  += '<option value="Frisco">Frisco</option>';
+            city_options_str  += '<option value="Fullerton">Fullerton</option>';
+            city_options_str  += '<option value="Gadsden">Gadsden</option>';
+            city_options_str  += '<option value="Gainesville">Gainesville</option>';
+            city_options_str  += '<option value="Gaithersburg">Gaithersburg</option>';
+            city_options_str  += '<option value="Galveston">Galveston</option>';
+            city_options_str  += '<option value="Garden Grove">Garden Grove</option>';
+            city_options_str  += '<option value="Gardena">Gardena</option>';
+            city_options_str  += '<option value="Garland">Garland</option>';
+            city_options_str  += '<option value="Gary">Gary</option>';
+            city_options_str  += '<option value="Gastonia">Gastonia</option>';
+            city_options_str  += '<option value="Georgetown">Georgetown</option>';
+            city_options_str  += '<option value="Germantown">Germantown</option>';
+            city_options_str  += '<option value="Gilbert">Gilbert</option>';
+            city_options_str  += '<option value="Gilroy">Gilroy</option>';
+            city_options_str  += '<option value="Glen Burnie">Glen Burnie</option>';
+            city_options_str  += '<option value="Glendale">Glendale</option>';
+            city_options_str  += '<option value="Glendora">Glendora</option>';
+            city_options_str  += '<option value="Glens Falls">Glens Falls</option>';
+            city_options_str  += '<option value="Goldsboro">Goldsboro</option>';
+            city_options_str  += '<option value="Goodyear">Goodyear</option>';
+            city_options_str  += '<option value="Grand Forks">Grand Forks</option>';
+            city_options_str  += '<option value="Grand Island">Grand Island</option>';
+            city_options_str  += '<option value="Grand Junction">Grand Junction</option>';
+            city_options_str  += '<option value="Grand Prairie">Grand Prairie</option>';
+            city_options_str  += '<option value="Grand Rapids">Grand Rapids</option>';
+            city_options_str  += '<option value="Grants Pass">Grants Pass</option>';
+            city_options_str  += '<option value="Grapevine">Grapevine</option>';
+            city_options_str  += '<option value="Great Falls">Great Falls</option>';
+            city_options_str  += '<option value="Greeley">Greeley</option>';
+            city_options_str  += '<option value="Green Bay">Green Bay</option>';
+            city_options_str  += '<option value="Greensboro">Greensboro</option>';
+            city_options_str  += '<option value="Greenville">Greenville</option>';
+            city_options_str  += '<option value="Greenwood">Greenwood</option>';
+            city_options_str  += '<option value="Gresham">Gresham</option>';
+            city_options_str  += '<option value="Gulfport">Gulfport</option>';
+            city_options_str  += '<option value="Hacienda Heights">Hacienda Heights</option>';
+            city_options_str  += '<option value="Hagerstown">Hagerstown</option>';
+            city_options_str  += '<option value="Hamilton">Hamilton</option>';
+            city_options_str  += '<option value="Hammond">Hammond</option>';
+            city_options_str  += '<option value="Hampton">Hampton</option>';
+            city_options_str  += '<option value="Hanford">Hanford</option>';
+            city_options_str  += '<option value="Hanover">Hanover</option>';
+            city_options_str  += '<option value="Harlingen">Harlingen</option>';
+            city_options_str  += '<option value="Harrisburg">Harrisburg</option>';
+            city_options_str  += '<option value="Harrisonburg">Harrisonburg</option>';
+            city_options_str  += '<option value="Hartford">Hartford</option>';
+            city_options_str  += '<option value="Hattiesburg">Hattiesburg</option>';
+            city_options_str  += '<option value="Haverhill">Haverhill</option>';
+            city_options_str  += '<option value="Hawthorne">Hawthorne</option>';
+            city_options_str  += '<option value="Hayward">Hayward</option>';
+            city_options_str  += '<option value="Hazleton">Hazleton</option>';
+            city_options_str  += '<option value="Helena">Helena</option>';
+            city_options_str  += '<option value="Hemet">Hemet</option>';
+            city_options_str  += '<option value="Henderson">Henderson</option>';
+            city_options_str  += '<option value="Hendersonville">Hendersonville</option>';
+            city_options_str  += '<option value="Herriman">Herriman</option>';
+            city_options_str  += '<option value="Hesperia">Hesperia</option>';
+            city_options_str  += '<option value="Hialeah">Hialeah</option>';
+            city_options_str  += '<option value="Hickory">Hickory</option>';
+            city_options_str  += '<option value="High Point">High Point</option>';
+            city_options_str  += '<option value="Highland">Highland</option>';
+            city_options_str  += '<option value="Highlands Ranch">Highlands Ranch</option>';
+            city_options_str  += '<option value="Hillsboro">Hillsboro</option>';
+            city_options_str  += '<option value="Hilton Head Island">Hilton Head Island</option>';
+            city_options_str  += '<option value="Hinesville">Hinesville</option>';
+            city_options_str  += '<option value="Hoboken">Hoboken</option>';
+            city_options_str  += '<option value="Hoffman Estates">Hoffman Estates</option>';
+            city_options_str  += '<option value="Holland">Holland</option>';
+            city_options_str  += '<option value="Hollywood">Hollywood</option>';
+            city_options_str  += '<option value="Homestead">Homestead</option>';
+            city_options_str  += '<option value="Hoover">Hoover</option>';
+            city_options_str  += '<option value="Hot Springs">Hot Springs</option>';
+            city_options_str  += '<option value="Houma">Houma</option>';
+            city_options_str  += '<option value="Houston">Houston</option>';
+            city_options_str  += '<option value="Huntersville">Huntersville</option>';
+            city_options_str  += '<option value="Huntington">Huntington</option>';
+            city_options_str  += '<option value="Huntington Beach">Huntington Beach</option>';
+            city_options_str  += '<option value="Huntington Park">Huntington Park</option>';
+            city_options_str  += '<option value="Huntsville">Huntsville</option>';
+            city_options_str  += '<option value="Idaho Falls">Idaho Falls</option>';
+            city_options_str  += '<option value="Independence">Independence</option>';
+            city_options_str  += '<option value="Indianapolis">Indianapolis</option>';
+            city_options_str  += '<option value="Indio">Indio</option>';
+            city_options_str  += '<option value="Inglewood">Inglewood</option>';
+            city_options_str  += '<option value="Iowa City">Iowa City</option>';
+            city_options_str  += '<option value="Irvine">Irvine</option>';
+            city_options_str  += '<option value="Irving">Irving</option>';
+            city_options_str  += '<option value="Ithaca">Ithaca</option>';
+            city_options_str  += '<option value="Jackson">Jackson</option>';
+            city_options_str  += '<option value="Jacksonville">Jacksonville</option>';
+            city_options_str  += '<option value="Janesville">Janesville</option>';
+            city_options_str  += '<option value="Jefferson City">Jefferson City</option>';
+            city_options_str  += '<option value="Jersey City">Jersey City</option>';
+            city_options_str  += '<option value="Johns Creek">Johns Creek</option>';
+            city_options_str  += '<option value="Johnson City">Johnson City</option>';
+            city_options_str  += '<option value="Johnstown">Johnstown</option>';
+            city_options_str  += '<option value="Joliet">Joliet</option>';
+            city_options_str  += '<option value="Jonesboro">Jonesboro</option>';
+            city_options_str  += '<option value="Joplin">Joplin</option>';
+            city_options_str  += '<option value="Jupiter">Jupiter</option>';
+            city_options_str  += '<option value="Jurupa Valley">Jurupa Valley</option>';
+            city_options_str  += '<option value="Kalamazoo">Kalamazoo</option>';
+            city_options_str  += '<option value="Kankakee">Kankakee</option>';
+            city_options_str  += '<option value="Kannapolis">Kannapolis</option>';
+            city_options_str  += '<option value="Kansas City">Kansas City</option>';
+            city_options_str  += '<option value="Kendale Lakes">Kendale Lakes</option>';
+            city_options_str  += '<option value="Kendall">Kendall</option>';
+            city_options_str  += '<option value="Kenner">Kenner</option>';
+            city_options_str  += '<option value="Kennewick">Kennewick</option>';
+            city_options_str  += '<option value="Kenosha">Kenosha</option>';
+            city_options_str  += '<option value="Kent">Kent</option>';
+            city_options_str  += '<option value="Kentwood">Kentwood</option>';
+            city_options_str  += '<option value="Kettering">Kettering</option>';
+            city_options_str  += '<option value="Killeen">Killeen</option>';
+            city_options_str  += '<option value="Kingsport">Kingsport</option>';
+            city_options_str  += '<option value="Kingston">Kingston</option>';
+            city_options_str  += '<option value="Kirkland">Kirkland</option>';
+            city_options_str  += '<option value="Kissimmee">Kissimmee</option>';
+            city_options_str  += '<option value="Knoxville">Knoxville</option>';
+            city_options_str  += '<option value="Kokomo">Kokomo</option>';
+            city_options_str  += '<option value="La Crosse">La Crosse</option>';
+            city_options_str  += '<option value="La Habra">La Habra</option>';
+            city_options_str  += '<option value="La Mesa">La Mesa</option>';
+            city_options_str  += '<option value="Lacey">Lacey</option>';
+            city_options_str  += '<option value="Lafayette">Lafayette</option>';
+            city_options_str  += '<option value="Laguna Niguel">Laguna Niguel</option>';
+            city_options_str  += '<option value="Lake Charles">Lake Charles</option>';
+            city_options_str  += '<option value="Lake Elsinore">Lake Elsinore</option>';
+            city_options_str  += '<option value="Lake Forest">Lake Forest</option>';
+            city_options_str  += '<option value="Lake Havasu City">Lake Havasu City</option>';
+            city_options_str  += '<option value="Lake Jackson">Lake Jackson</option>';
+            city_options_str  += '<option value="Lakeland">Lakeland</option>';
+            city_options_str  += '<option value="Lakeville">Lakeville</option>';
+            city_options_str  += '<option value="Lakewood">Lakewood</option>';
+            city_options_str  += '<option value="Lancaster">Lancaster</option>';
+            city_options_str  += '<option value="Lansing">Lansing</option>';
+            city_options_str  += '<option value="Laredo">Laredo</option>';
+            city_options_str  += '<option value="Largo">Largo</option>';
+            city_options_str  += '<option value="Las Cruces">Las Cruces</option>';
+            city_options_str  += '<option value="Las Vegas">Las Vegas</option>';
+            city_options_str  += '<option value="Lauderhill">Lauderhill</option>';
+            city_options_str  += '<option value="Lawrence">Lawrence</option>';
+            city_options_str  += '<option value="Lawton">Lawton</option>';
+            city_options_str  += '<option value="Layton">Layton</option>';
+            city_options_str  += '<option value="League City">League City</option>';
+            city_options_str  += '<option value="Leander">Leander</option>';
+            city_options_str  += '<option value="Lebanon">Lebanon</option>';
+            city_options_str  += '<option value="Lee&apos;s Summit">Lee&apos;s Summit</option>';
+            city_options_str  += '<option value="Leesburg">Leesburg</option>';
+            city_options_str  += '<option value="Lehi">Lehi</option>';
+            city_options_str  += '<option value="Lehigh Acres">Lehigh Acres</option>';
+            city_options_str  += '<option value="Lenexa">Lenexa</option>';
+            city_options_str  += '<option value="Leominster">Leominster</option>';
+            city_options_str  += '<option value="Levittown">Levittown</option>';
+            city_options_str  += '<option value="Lewiston">Lewiston</option>';
+            city_options_str  += '<option value="Lewisville">Lewisville</option>';
+            city_options_str  += '<option value="Lexington">Lexington</option>';
+            city_options_str  += '<option value="Lima">Lima</option>';
+            city_options_str  += '<option value="Lincoln">Lincoln</option>';
+            city_options_str  += '<option value="Little Elm">Little Elm</option>';
+            city_options_str  += '<option value="Little Rock">Little Rock</option>';
+            city_options_str  += '<option value="Livermore">Livermore</option>';
+            city_options_str  += '<option value="Livonia">Livonia</option>';
+            city_options_str  += '<option value="Lodi">Lodi</option>';
+            city_options_str  += '<option value="Logan">Logan</option>';
+            city_options_str  += '<option value="Lompoc">Lompoc</option>';
+            city_options_str  += '<option value="Long Beach">Long Beach</option>';
+            city_options_str  += '<option value="Longmont">Longmont</option>';
+            city_options_str  += '<option value="Longview">Longview</option>';
+            city_options_str  += '<option value="Lorain">Lorain</option>';
+            city_options_str  += '<option value="Los Angeles">Los Angeles</option>';
+            city_options_str  += '<option value="Los Lunas">Los Lunas</option>';
+            city_options_str  += '<option value="Louisville">Louisville</option>';
+            city_options_str  += '<option value="Loveland">Loveland</option>';
+            city_options_str  += '<option value="Lowell">Lowell</option>';
+            city_options_str  += '<option value="Lubbock">Lubbock</option>';
+            city_options_str  += '<option value="Lynchburg">Lynchburg</option>';
+            city_options_str  += '<option value="Lynn">Lynn</option>';
+            city_options_str  += '<option value="Lynwood">Lynwood</option>';
+            city_options_str  += '<option value="Macon">Macon</option>';
+            city_options_str  += '<option value="Madera">Madera</option>';
+            city_options_str  += '<option value="Madison">Madison</option>';
+            city_options_str  += '<option value="Malden">Malden</option>';
+            city_options_str  += '<option value="Manchester">Manchester</option>';
+            city_options_str  += '<option value="Mandeville">Mandeville</option>';
+            city_options_str  += '<option value="Manhattan">Manhattan</option>';
+            city_options_str  += '<option value="Mankato">Mankato</option>';
+            city_options_str  += '<option value="Mansfield">Mansfield</option>';
+            city_options_str  += '<option value="Manteca">Manteca</option>';
+            city_options_str  += '<option value="Maple Grove">Maple Grove</option>';
+            city_options_str  += '<option value="Margate">Margate</option>';
+            city_options_str  += '<option value="Maricopa">Maricopa</option>';
+            city_options_str  += '<option value="Marietta">Marietta</option>';
+            city_options_str  += '<option value="Marysville">Marysville</option>';
+            city_options_str  += '<option value="Mauldin">Mauldin</option>';
+            city_options_str  += '<option value="McAllen">McAllen</option>';
+            city_options_str  += '<option value="McKinney">McKinney</option>';
+            city_options_str  += '<option value="Medford">Medford</option>';
+            city_options_str  += '<option value="Melbourne">Melbourne</option>';
+            city_options_str  += '<option value="Memphis">Memphis</option>';
+            city_options_str  += '<option value="Menifee">Menifee</option>';
+            city_options_str  += '<option value="Merced">Merced</option>';
+            city_options_str  += '<option value="Meriden">Meriden</option>';
+            city_options_str  += '<option value="Meridian">Meridian</option>';
+            city_options_str  += '<option value="Mesa">Mesa</option>';
+            city_options_str  += '<option value="Mesquite">Mesquite</option>';
+            city_options_str  += '<option value="Metairie">Metairie</option>';
+            city_options_str  += '<option value="Methuen Town">Methuen Town</option>';
+            city_options_str  += '<option value="Miami">Miami</option>';
+            city_options_str  += '<option value="Miami Beach">Miami Beach</option>';
+            city_options_str  += '<option value="Miami Gardens">Miami Gardens</option>';
+            city_options_str  += '<option value="Michigan City">Michigan City</option>';
+            city_options_str  += '<option value="Middletown">Middletown</option>';
+            city_options_str  += '<option value="Midland">Midland</option>';
+            city_options_str  += '<option value="Midwest City">Midwest City</option>';
+            city_options_str  += '<option value="Milford">Milford</option>';
+            city_options_str  += '<option value="Milford city">Milford city</option>';
+            city_options_str  += '<option value="Millcreek">Millcreek</option>';
+            city_options_str  += '<option value="Milpitas">Milpitas</option>';
+            city_options_str  += '<option value="Milwaukee">Milwaukee</option>';
+            city_options_str  += '<option value="Minneapolis">Minneapolis</option>';
+            city_options_str  += '<option value="Minnetonka">Minnetonka</option>';
+            city_options_str  += '<option value="Miramar">Miramar</option>';
+            city_options_str  += '<option value="Mishawaka">Mishawaka</option>';
+            city_options_str  += '<option value="Mission">Mission</option>';
+            city_options_str  += '<option value="Mission Viejo">Mission Viejo</option>';
+            city_options_str  += '<option value="Missoula">Missoula</option>';
+            city_options_str  += '<option value="Missouri City">Missouri City</option>';
+            city_options_str  += '<option value="Mobile">Mobile</option>';
+            city_options_str  += '<option value="Modesto">Modesto</option>';
+            city_options_str  += '<option value="Monessen">Monessen</option>';
+            city_options_str  += '<option value="Monroe">Monroe</option>';
+            city_options_str  += '<option value="Montebello">Montebello</option>';
+            city_options_str  += '<option value="Monterey Park">Monterey Park</option>';
+            city_options_str  += '<option value="Montgomery">Montgomery</option>';
+            city_options_str  += '<option value="Moore">Moore</option>';
+            city_options_str  += '<option value="Moreno Valley">Moreno Valley</option>';
+            city_options_str  += '<option value="Morgantown">Morgantown</option>';
+            city_options_str  += '<option value="Morristown">Morristown</option>';
+            city_options_str  += '<option value="Mount Pleasant">Mount Pleasant</option>';
+            city_options_str  += '<option value="Mount Prospect">Mount Prospect</option>';
+            city_options_str  += '<option value="Mount Vernon">Mount Vernon</option>';
+            city_options_str  += '<option value="Mountain View">Mountain View</option>';
+            city_options_str  += '<option value="Muncie">Muncie</option>';
+            city_options_str  += '<option value="Murfreesboro">Murfreesboro</option>';
+            city_options_str  += '<option value="Murrieta">Murrieta</option>';
+            city_options_str  += '<option value="Muskegon">Muskegon</option>';
+            city_options_str  += '<option value="Myrtle Beach">Myrtle Beach</option>';
+            city_options_str  += '<option value="Nampa">Nampa</option>';
+            city_options_str  += '<option value="Napa">Napa</option>';
+            city_options_str  += '<option value="Naperville">Naperville</option>';
+            city_options_str  += '<option value="Nashua">Nashua</option>';
+            city_options_str  += '<option value="Nashville">Nashville</option>';
+            city_options_str  += '<option value="National City">National City</option>';
+            city_options_str  += '<option value="New Bedford">New Bedford</option>';
+            city_options_str  += '<option value="New Bern">New Bern</option>';
+            city_options_str  += '<option value="New Braunfels">New Braunfels</option>';
+            city_options_str  += '<option value="New Britain">New Britain</option>';
+            city_options_str  += '<option value="New Brunswick">New Brunswick</option>';
+            city_options_str  += '<option value="New Haven">New Haven</option>';
+            city_options_str  += '<option value="New Orleans">New Orleans</option>';
+            city_options_str  += '<option value="New Rochelle">New Rochelle</option>';
+            city_options_str  += '<option value="New York">New York</option>';
+            city_options_str  += '<option value="Newark">Newark</option>';
+            city_options_str  += '<option value="Newport Beach">Newport Beach</option>';
+            city_options_str  += '<option value="Newport News">Newport News</option>';
+            city_options_str  += '<option value="Newton">Newton</option>';
+            city_options_str  += '<option value="Noblesville">Noblesville</option>';
+            city_options_str  += '<option value="Norfolk">Norfolk</option>';
+            city_options_str  += '<option value="Normal">Normal</option>';
+            city_options_str  += '<option value="Norman">Norman</option>';
+            city_options_str  += '<option value="North Bethesda">North Bethesda</option>';
+            city_options_str  += '<option value="North Charleston">North Charleston</option>';
+            city_options_str  += '<option value="North Las Vegas">North Las Vegas</option>';
+            city_options_str  += '<option value="North Little Rock">North Little Rock</option>';
+            city_options_str  += '<option value="North Miami">North Miami</option>';
+            city_options_str  += '<option value="North Port">North Port</option>';
+            city_options_str  += '<option value="North Richland Hills">North Richland Hills</option>';
+            city_options_str  += '<option value="Norwalk">Norwalk</option>';
+            city_options_str  += '<option value="Norwich">Norwich</option>';
+            city_options_str  += '<option value="Novato">Novato</option>';
+            city_options_str  += '<option value="Novi">Novi</option>';
+            city_options_str  += '<option value="O&apos;Fallon">O&apos;Fallon</option>';
+            city_options_str  += '<option value="Oak Lawn">Oak Lawn</option>';
+            city_options_str  += '<option value="Oak Park">Oak Park</option>';
+            city_options_str  += '<option value="Oakland">Oakland</option>';
+            city_options_str  += '<option value="Ocala">Ocala</option>';
+            city_options_str  += '<option value="Oceanside">Oceanside</option>';
+            city_options_str  += '<option value="Odessa">Odessa</option>';
+            city_options_str  += '<option value="Ogden">Ogden</option>';
+            city_options_str  += '<option value="Oklahoma City">Oklahoma City</option>';
+            city_options_str  += '<option value="Olathe">Olathe</option>';
+            city_options_str  += '<option value="Olympia">Olympia</option>';
+            city_options_str  += '<option value="Omaha">Omaha</option>';
+            city_options_str  += '<option value="Ontario">Ontario</option>';
+            city_options_str  += '<option value="Orange">Orange</option>';
+            city_options_str  += '<option value="Orem">Orem</option>';
+            city_options_str  += '<option value="Orland Park">Orland Park</option>';
+            city_options_str  += '<option value="Orlando">Orlando</option>';
+            city_options_str  += '<option value="Oshkosh">Oshkosh</option>';
+            city_options_str  += '<option value="Overland Park">Overland Park</option>';
+            city_options_str  += '<option value="Owensboro">Owensboro</option>';
+            city_options_str  += '<option value="Oxnard">Oxnard</option>';
+            city_options_str  += '<option value="Palatine">Palatine</option>';
+            city_options_str  += '<option value="Palm Bay">Palm Bay</option>';
+            city_options_str  += '<option value="Palm Beach Gardens">Palm Beach Gardens</option>';
+            city_options_str  += '<option value="Palm Coast">Palm Coast</option>';
+            city_options_str  += '<option value="Palm Desert">Palm Desert</option>';
+            city_options_str  += '<option value="Palm Harbor">Palm Harbor</option>';
+            city_options_str  += '<option value="Palmdale">Palmdale</option>';
+            city_options_str  += '<option value="Palo Alto">Palo Alto</option>';
+            city_options_str  += '<option value="Panama City">Panama City</option>';
+            city_options_str  += '<option value="Paradise">Paradise</option>';
+            city_options_str  += '<option value="Paramount">Paramount</option>';
+            city_options_str  += '<option value="Parker">Parker</option>';
+            city_options_str  += '<option value="Parkersburg">Parkersburg</option>';
+            city_options_str  += '<option value="Parma">Parma</option>';
+            city_options_str  += '<option value="Pasadena">Pasadena</option>';
+            city_options_str  += '<option value="Pasco">Pasco</option>';
+            city_options_str  += '<option value="Passaic">Passaic</option>';
+            city_options_str  += '<option value="Paterson">Paterson</option>';
+            city_options_str  += '<option value="Pawtucket">Pawtucket</option>';
+            city_options_str  += '<option value="Peabody">Peabody</option>';
+            city_options_str  += '<option value="Pearland">Pearland</option>';
+            city_options_str  += '<option value="Pembroke Pines">Pembroke Pines</option>';
+            city_options_str  += '<option value="Pensacola">Pensacola</option>';
+            city_options_str  += '<option value="Peoria">Peoria</option>';
+            city_options_str  += '<option value="Perris">Perris</option>';
+            city_options_str  += '<option value="Perth Amboy">Perth Amboy</option>';
+            city_options_str  += '<option value="Petaluma">Petaluma</option>';
+            city_options_str  += '<option value="Pflugerville">Pflugerville</option>';
+            city_options_str  += '<option value="Pharr">Pharr</option>';
+            city_options_str  += '<option value="Philadelphia">Philadelphia</option>';
+            city_options_str  += '<option value="Phoenix">Phoenix</option>';
+            city_options_str  += '<option value="Pico Rivera">Pico Rivera</option>';
+            city_options_str  += '<option value="Pine Hills">Pine Hills</option>';
+            city_options_str  += '<option value="Pinellas Park">Pinellas Park</option>';
+            city_options_str  += '<option value="Pittsburg">Pittsburg</option>';
+            city_options_str  += '<option value="Pittsburgh">Pittsburgh</option>';
+            city_options_str  += '<option value="Pittsfield">Pittsfield</option>';
+            city_options_str  += '<option value="Placentia">Placentia</option>';
+            city_options_str  += '<option value="Plainfield">Plainfield</option>';
+            city_options_str  += '<option value="Plano">Plano</option>';
+            city_options_str  += '<option value="Plantation">Plantation</option>';
+            city_options_str  += '<option value="Pleasanton">Pleasanton</option>';
+            city_options_str  += '<option value="Plymouth">Plymouth</option>';
+            city_options_str  += '<option value="Pocatello">Pocatello</option>';
+            city_options_str  += '<option value="Poinciana">Poinciana</option>';
+            city_options_str  += '<option value="Pomona">Pomona</option>';
+            city_options_str  += '<option value="Pompano Beach">Pompano Beach</option>';
+            city_options_str  += '<option value="Pontiac">Pontiac</option>';
+            city_options_str  += '<option value="Port Arthur">Port Arthur</option>';
+            city_options_str  += '<option value="Port Charlotte">Port Charlotte</option>';
+            city_options_str  += '<option value="Port Huron">Port Huron</option>';
+            city_options_str  += '<option value="Port Orange">Port Orange</option>';
+            city_options_str  += '<option value="Port St. Lucie">Port St. Lucie</option>';
+            city_options_str  += '<option value="Porterville">Porterville</option>';
+            city_options_str  += '<option value="Portland">Portland</option>';
+            city_options_str  += '<option value="Portsmouth">Portsmouth</option>';
+            city_options_str  += '<option value="Pottstown">Pottstown</option>';
+            city_options_str  += '<option value="Poughkeepsie">Poughkeepsie</option>';
+            city_options_str  += '<option value="Prescott Valley">Prescott Valley</option>';
+            city_options_str  += '<option value="Providence">Providence</option>';
+            city_options_str  += '<option value="Provo">Provo</option>';
+            city_options_str  += '<option value="Pueblo">Pueblo</option>';
+            city_options_str  += '<option value="Queen Creek">Queen Creek</option>';
+            city_options_str  += '<option value="Queens">Queens</option>';
+            city_options_str  += '<option value="Quincy">Quincy</option>';
+            city_options_str  += '<option value="Racine">Racine</option>';
+            city_options_str  += '<option value="Raleigh">Raleigh</option>';
+            city_options_str  += '<option value="Rancho Cordova">Rancho Cordova</option>';
+            city_options_str  += '<option value="Rancho Cucamonga">Rancho Cucamonga</option>';
+            city_options_str  += '<option value="Rapid City">Rapid City</option>';
+            city_options_str  += '<option value="Reading">Reading</option>';
+            city_options_str  += '<option value="Redding">Redding</option>';
+            city_options_str  += '<option value="Redlands">Redlands</option>';
+            city_options_str  += '<option value="Redmond">Redmond</option>';
+            city_options_str  += '<option value="Redondo Beach">Redondo Beach</option>';
+            city_options_str  += '<option value="Redwood City">Redwood City</option>';
+            city_options_str  += '<option value="Reno">Reno</option>';
+            city_options_str  += '<option value="Renton">Renton</option>';
+            city_options_str  += '<option value="Reston">Reston</option>';
+            city_options_str  += '<option value="Revere">Revere</option>';
+            city_options_str  += '<option value="Rialto">Rialto</option>';
+            city_options_str  += '<option value="Richardson">Richardson</option>';
+            city_options_str  += '<option value="Richland">Richland</option>';
+            city_options_str  += '<option value="Richmond">Richmond</option>';
+            city_options_str  += '<option value="Rio Rancho">Rio Rancho</option>';
+            city_options_str  += '<option value="Riverside">Riverside</option>';
+            city_options_str  += '<option value="Riverview">Riverview</option>';
+            city_options_str  += '<option value="Roanoke">Roanoke</option>';
+            city_options_str  += '<option value="Rochester">Rochester</option>';
+            city_options_str  += '<option value="Rochester Hills">Rochester Hills</option>';
+            city_options_str  += '<option value="Rock Hill">Rock Hill</option>';
+            city_options_str  += '<option value="Rockford">Rockford</option>';
+            city_options_str  += '<option value="Rocklin">Rocklin</option>';
+            city_options_str  += '<option value="Rockville">Rockville</option>';
+            city_options_str  += '<option value="Rocky Mount">Rocky Mount</option>';
+            city_options_str  += '<option value="Rogers">Rogers</option>';
+            city_options_str  += '<option value="Rome">Rome</option>';
+            city_options_str  += '<option value="Rosemead">Rosemead</option>';
+            city_options_str  += '<option value="Roseville">Roseville</option>';
+            city_options_str  += '<option value="Roswell">Roswell</option>';
+            city_options_str  += '<option value="Round Lake Beach">Round Lake Beach</option>';
+            city_options_str  += '<option value="Round Rock">Round Rock</option>';
+            city_options_str  += '<option value="Rowland Heights">Rowland Heights</option>';
+            city_options_str  += '<option value="Rowlett">Rowlett</option>';
+            city_options_str  += '<option value="Royal Oak">Royal Oak</option>';
+            city_options_str  += '<option value="Sacramento">Sacramento</option>';
+            city_options_str  += '<option value="Saginaw">Saginaw</option>';
+            city_options_str  += '<option value="Sahuarita">Sahuarita</option>';
+            city_options_str  += '<option value="Salem">Salem</option>';
+            city_options_str  += '<option value="Salinas">Salinas</option>';
+            city_options_str  += '<option value="Salisbury">Salisbury</option>';
+            city_options_str  += '<option value="Salt Lake City">Salt Lake City</option>';
+            city_options_str  += '<option value="Sammamish">Sammamish</option>';
+            city_options_str  += '<option value="San Angelo">San Angelo</option>';
+            city_options_str  += '<option value="San Antonio">San Antonio</option>';
+            city_options_str  += '<option value="San Bernardino">San Bernardino</option>';
+            city_options_str  += '<option value="San Buenaventura">San Buenaventura</option>';
+            city_options_str  += '<option value="San Clemente">San Clemente</option>';
+            city_options_str  += '<option value="San Diego">San Diego</option>';
+            city_options_str  += '<option value="San Francisco">San Francisco</option>';
+            city_options_str  += '<option value="San Jose">San Jose</option>';
+            city_options_str  += '<option value="San Leandro">San Leandro</option>';
+            city_options_str  += '<option value="San Luis Obispo">San Luis Obispo</option>';
+            city_options_str  += '<option value="San Marcos">San Marcos</option>';
+            city_options_str  += '<option value="San Mateo">San Mateo</option>';
+            city_options_str  += '<option value="San Rafael">San Rafael</option>';
+            city_options_str  += '<option value="San Ramon">San Ramon</option>';
+            city_options_str  += '<option value="San Tan Valley">San Tan Valley</option>';
+            city_options_str  += '<option value="Sandy">Sandy</option>';
+            city_options_str  += '<option value="Sandy Springs">Sandy Springs</option>';
+            city_options_str  += '<option value="Sanford">Sanford</option>';
+            city_options_str  += '<option value="Santa Ana">Santa Ana</option>';
+            city_options_str  += '<option value="Santa Barbara">Santa Barbara</option>';
+            city_options_str  += '<option value="Santa Clara">Santa Clara</option>';
+            city_options_str  += '<option value="Santa Clarita">Santa Clarita</option>';
+            city_options_str  += '<option value="Santa Cruz">Santa Cruz</option>';
+            city_options_str  += '<option value="Santa Fe">Santa Fe</option>';
+            city_options_str  += '<option value="Santa Maria">Santa Maria</option>';
+            city_options_str  += '<option value="Santa Monica">Santa Monica</option>';
+            city_options_str  += '<option value="Santa Rosa">Santa Rosa</option>';
+            city_options_str  += '<option value="Santee">Santee</option>';
+            city_options_str  += '<option value="Sarasota">Sarasota</option>';
+            city_options_str  += '<option value="Saratoga Springs">Saratoga Springs</option>';
+            city_options_str  += '<option value="Savannah">Savannah</option>';
+            city_options_str  += '<option value="Schaumburg">Schaumburg</option>';
+            city_options_str  += '<option value="Schenectady">Schenectady</option>';
+            city_options_str  += '<option value="Scottsdale">Scottsdale</option>';
+            city_options_str  += '<option value="Scranton">Scranton</option>';
+            city_options_str  += '<option value="Seaside">Seaside</option>';
+            city_options_str  += '<option value="Seattle">Seattle</option>';
+            city_options_str  += '<option value="Sebring">Sebring</option>';
+            city_options_str  += '<option value="Severn">Severn</option>';
+            city_options_str  += '<option value="Shawnee">Shawnee</option>';
+            city_options_str  += '<option value="Sheboygan">Sheboygan</option>';
+            city_options_str  += '<option value="Sherman">Sherman</option>';
+            city_options_str  += '<option value="Shoreline">Shoreline</option>';
+            city_options_str  += '<option value="Shreveport">Shreveport</option>';
+            city_options_str  += '<option value="Sierra Vista">Sierra Vista</option>';
+            city_options_str  += '<option value="Silver Spring">Silver Spring</option>';
+            city_options_str  += '<option value="Simi Valley">Simi Valley</option>';
+            city_options_str  += '<option value="Sioux City">Sioux City</option>';
+            city_options_str  += '<option value="Sioux Falls">Sioux Falls</option>';
+            city_options_str  += '<option value="Skokie">Skokie</option>';
+            city_options_str  += '<option value="Slidell">Slidell</option>';
+            city_options_str  += '<option value="Smyrna">Smyrna</option>';
+            city_options_str  += '<option value="Somerville">Somerville</option>';
+            city_options_str  += '<option value="South Bend">South Bend</option>';
+            city_options_str  += '<option value="South Fulton">South Fulton</option>';
+            city_options_str  += '<option value="South Gate">South Gate</option>';
+            city_options_str  += '<option value="South Hill">South Hill</option>';
+            city_options_str  += '<option value="South Jordan">South Jordan</option>';
+            city_options_str  += '<option value="South Lyon">South Lyon</option>';
+            city_options_str  += '<option value="South San Francisco">South San Francisco</option>';
+            city_options_str  += '<option value="South Whittier">South Whittier</option>';
+            city_options_str  += '<option value="Southaven">Southaven</option>';
+            city_options_str  += '<option value="Southfield">Southfield</option>';
+            city_options_str  += '<option value="Sparks">Sparks</option>';
+            city_options_str  += '<option value="Spartanburg">Spartanburg</option>';
+            city_options_str  += '<option value="Spokane">Spokane</option>';
+            city_options_str  += '<option value="Spokane Valley">Spokane Valley</option>';
+            city_options_str  += '<option value="Spring">Spring</option>';
+            city_options_str  += '<option value="Spring Hill">Spring Hill</option>';
+            city_options_str  += '<option value="Spring Valley">Spring Valley</option>';
+            city_options_str  += '<option value="Springdale">Springdale</option>';
+            city_options_str  += '<option value="Springfield">Springfield</option>';
+            city_options_str  += '<option value="St. Augustine">St. Augustine</option>';
+            city_options_str  += '<option value="St. Charles">St. Charles</option>';
+            city_options_str  += '<option value="St. Clair Shores">St. Clair Shores</option>';
+            city_options_str  += '<option value="St. Cloud">St. Cloud</option>';
+            city_options_str  += '<option value="St. George">St. George</option>';
+            city_options_str  += '<option value="St. Joseph">St. Joseph</option>';
+            city_options_str  += '<option value="St. Louis">St. Louis</option>';
+            city_options_str  += '<option value="St. Paul">St. Paul</option>';
+            city_options_str  += '<option value="St. Peters">St. Peters</option>';
+            city_options_str  += '<option value="St. Petersburg">St. Petersburg</option>';
+            city_options_str  += '<option value="Stamford">Stamford</option>';
+            city_options_str  += '<option value="State College">State College</option>';
+            city_options_str  += '<option value="Staten Island">Staten Island</option>';
+            city_options_str  += '<option value="Staunton">Staunton</option>';
+            city_options_str  += '<option value="Sterling Heights">Sterling Heights</option>';
+            city_options_str  += '<option value="Stillwater">Stillwater</option>';
+            city_options_str  += '<option value="Stockton">Stockton</option>';
+            city_options_str  += '<option value="Stonecrest">Stonecrest</option>';
+            city_options_str  += '<option value="Suffolk">Suffolk</option>';
+            city_options_str  += '<option value="Sugar Land">Sugar Land</option>';
+            city_options_str  += '<option value="Summerville">Summerville</option>';
+            city_options_str  += '<option value="Sumter">Sumter</option>';
+            city_options_str  += '<option value="Sunnyvale">Sunnyvale</option>';
+            city_options_str  += '<option value="Sunrise">Sunrise</option>';
+            city_options_str  += '<option value="Sunrise Manor">Sunrise Manor</option>';
+            city_options_str  += '<option value="Surprise">Surprise</option>';
+            city_options_str  += '<option value="Syracuse">Syracuse</option>';
+            city_options_str  += '<option value="Tacoma">Tacoma</option>';
+            city_options_str  += '<option value="Tallahassee">Tallahassee</option>';
+            city_options_str  += '<option value="Tamarac">Tamarac</option>';
+            city_options_str  += '<option value="Tamiami">Tamiami</option>';
+            city_options_str  += '<option value="Tampa">Tampa</option>';
+            city_options_str  += '<option value="Taunton">Taunton</option>';
+            city_options_str  += '<option value="Taylor">Taylor</option>';
+            city_options_str  += '<option value="Taylorsville">Taylorsville</option>';
+            city_options_str  += '<option value="Temecula">Temecula</option>';
+            city_options_str  += '<option value="Tempe">Tempe</option>';
+            city_options_str  += '<option value="Temple">Temple</option>';
+            city_options_str  += '<option value="Terre Haute">Terre Haute</option>';
+            city_options_str  += '<option value="Texarkana">Texarkana</option>';
+            city_options_str  += '<option value="Texas City">Texas City</option>';
+            city_options_str  += '<option value="The Hammocks">The Hammocks</option>';
+            city_options_str  += '<option value="The Villages">The Villages</option>';
+            city_options_str  += '<option value="The Woodlands">The Woodlands</option>';
+            city_options_str  += '<option value="Thornton">Thornton</option>';
+            city_options_str  += '<option value="Thousand Oaks">Thousand Oaks</option>';
+            city_options_str  += '<option value="Tigard">Tigard</option>';
+            city_options_str  += '<option value="Tinley Park">Tinley Park</option>';
+            city_options_str  += '<option value="Titusville">Titusville</option>';
+            city_options_str  += '<option value="Toledo">Toledo</option>';
+            city_options_str  += '<option value="Topeka">Topeka</option>';
+            city_options_str  += '<option value="Torrance">Torrance</option>';
+            city_options_str  += '<option value="Town &apos;n&apos; Country">Town &apos;n&apos; Country</option>';
+            city_options_str  += '<option value="Towson">Towson</option>';
+            city_options_str  += '<option value="Tracy">Tracy</option>';
+            city_options_str  += '<option value="Traverse City">Traverse City</option>';
+            city_options_str  += '<option value="Trenton">Trenton</option>';
+            city_options_str  += '<option value="Troy">Troy</option>';
+            city_options_str  += '<option value="Tucson">Tucson</option>';
+            city_options_str  += '<option value="Tulare">Tulare</option>';
+            city_options_str  += '<option value="Tulsa">Tulsa</option>';
+            city_options_str  += '<option value="Turlock">Turlock</option>';
+            city_options_str  += '<option value="Tuscaloosa">Tuscaloosa</option>';
+            city_options_str  += '<option value="Tustin">Tustin</option>';
+            city_options_str  += '<option value="Twin Falls">Twin Falls</option>';
+            city_options_str  += '<option value="Tyler">Tyler</option>';
+            city_options_str  += '<option value="Union City">Union City</option>';
+            city_options_str  += '<option value="Upland">Upland</option>';
+            city_options_str  += '<option value="Utica">Utica</option>';
+            city_options_str  += '<option value="Vacaville">Vacaville</option>';
+            city_options_str  += '<option value="Valdosta">Valdosta</option>';
+            city_options_str  += '<option value="Vallejo">Vallejo</option>';
+            city_options_str  += '<option value="Vancouver">Vancouver</option>';
+            city_options_str  += '<option value="Victoria">Victoria</option>';
+            city_options_str  += '<option value="Victorville">Victorville</option>';
+            city_options_str  += '<option value="Vineland">Vineland</option>';
+            city_options_str  += '<option value="Virginia Beach">Virginia Beach</option>';
+            city_options_str  += '<option value="Visalia">Visalia</option>';
+            city_options_str  += '<option value="Vista">Vista</option>';
+            city_options_str  += '<option value="Waco">Waco</option>';
+            city_options_str  += '<option value="Waldorf">Waldorf</option>';
+            city_options_str  += '<option value="Walla Walla">Walla Walla</option>';
+            city_options_str  += '<option value="Walnut Creek">Walnut Creek</option>';
+            city_options_str  += '<option value="Waltham">Waltham</option>';
+            city_options_str  += '<option value="Warner Robins">Warner Robins</option>';
+            city_options_str  += '<option value="Warren">Warren</option>';
+            city_options_str  += '<option value="Warwick">Warwick</option>';
+            city_options_str  += '<option value="Washington">Washington</option>';
+            city_options_str  += '<option value="Waterbury">Waterbury</option>';
+            city_options_str  += '<option value="Waterloo">Waterloo</option>';
+            city_options_str  += '<option value="Watertown">Watertown</option>';
+            city_options_str  += '<option value="Watsonville">Watsonville</option>';
+            city_options_str  += '<option value="Waukegan">Waukegan</option>';
+            city_options_str  += '<option value="Waukesha">Waukesha</option>';
+            city_options_str  += '<option value="Wausau">Wausau</option>';
+            city_options_str  += '<option value="Weirton">Weirton</option>';
+            city_options_str  += '<option value="Wellington">Wellington</option>';
+            city_options_str  += '<option value="Wenatchee">Wenatchee</option>';
+            city_options_str  += '<option value="Wesley Chapel">Wesley Chapel</option>';
+            city_options_str  += '<option value="West Allis">West Allis</option>';
+            city_options_str  += '<option value="West Bend">West Bend</option>';
+            city_options_str  += '<option value="West Covina">West Covina</option>';
+            city_options_str  += '<option value="West Des Moines">West Des Moines</option>';
+            city_options_str  += '<option value="West Haven">West Haven</option>';
+            city_options_str  += '<option value="West Jordan">West Jordan</option>';
+            city_options_str  += '<option value="West Lafayette">West Lafayette</option>';
+            city_options_str  += '<option value="West New York">West New York</option>';
+            city_options_str  += '<option value="West Palm Beach">West Palm Beach</option>';
+            city_options_str  += '<option value="West Sacramento">West Sacramento</option>';
+            city_options_str  += '<option value="West Valley City">West Valley City</option>';
+            city_options_str  += '<option value="Westland">Westland</option>';
+            city_options_str  += '<option value="Westminster">Westminster</option>';
+            city_options_str  += '<option value="Weston">Weston</option>';
+            city_options_str  += '<option value="Weymouth">Weymouth</option>';
+            city_options_str  += '<option value="Wheaton">Wheaton</option>';
+            city_options_str  += '<option value="Wheeling">Wheeling</option>';
+            city_options_str  += '<option value="White Plains">White Plains</option>';
+            city_options_str  += '<option value="Whittier">Whittier</option>';
+            city_options_str  += '<option value="Wichita">Wichita</option>';
+            city_options_str  += '<option value="Wichita Falls">Wichita Falls</option>';
+            city_options_str  += '<option value="Williamsburg">Williamsburg</option>';
+            city_options_str  += '<option value="Williamsport">Williamsport</option>';
+            city_options_str  += '<option value="Wilmington">Wilmington</option>';
+            city_options_str  += '<option value="Winchester">Winchester</option>';
+            city_options_str  += '<option value="Winston-Salem">Winston-Salem</option>';
+            city_options_str  += '<option value="Winter Haven">Winter Haven</option>';
+            city_options_str  += '<option value="Woodbury">Woodbury</option>';
+            city_options_str  += '<option value="Woodland">Woodland</option>';
+            city_options_str  += '<option value="Worcester">Worcester</option>';
+            city_options_str  += '<option value="Wylie">Wylie</option>';
+            city_options_str  += '<option value="Wyoming">Wyoming</option>';
+            city_options_str  += '<option value="Yakima">Yakima</option>';
+            city_options_str  += '<option value="Yonkers">Yonkers</option>';
+            city_options_str  += '<option value="Yorba Linda">Yorba Linda</option>';
+            city_options_str  += '<option value="York">York</option>';
+            city_options_str  += '<option value="Youngstown">Youngstown</option>';
+            city_options_str  += '<option value="Yuba City">Yuba City</option>';
+            city_options_str  += '<option value="Yucaipa">Yucaipa</option>';
+            city_options_str  += '<option value="Yuma">Yuma</option>';
+            city_options_str  += '<option value="Zephyrhills">Zephyrhills</option>';
+            sel_city.innerHTML = city_options_str;
+            div_city.appendChild(sel_city);
+            var lab_city = document.createElement('div');
+            lab_city.innerHTML = 'city';
+            lab_city.className = 'filterlabel';
+            div_city.appendChild(lab_city);
+            var reset_city = document.createElement('div');
+            reset_city.innerHTML = 'clear filter';
+            reset_city.className = 'filterlabel';
+            reset_city.onclick = function() {
+                var options = document.getElementById("sel_city").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_city.appendChild(reset_city);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_sunrise_sh = document.createElement('div');
+            div_sunrise_sh.id = "div_sunrise_sh";
+            div_sunrise_sh.className= "filterselect";
+            document.getElementById("menu").appendChild(div_sunrise_sh);
+            sel_sunrise_sh = document.createElement('select');
+            sel_sunrise_sh.multiple = true;
+            sel_sunrise_sh.size = 10;
+            sel_sunrise_sh.id = "sel_sunrise_sh";
+            var sunrise_sh_options_str = "<option value='' unselected></option>";
+            sel_sunrise_sh.onchange = function(){filterFunc()};
+            sunrise_sh_options_str  += '<option value="6:33 AM">6:33 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:34 AM">6:34 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:38 AM">6:38 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:39 AM">6:39 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:40 AM">6:40 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:41 AM">6:41 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:42 AM">6:42 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:43 AM">6:43 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:44 AM">6:44 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:45 AM">6:45 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:46 AM">6:46 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:47 AM">6:47 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:48 AM">6:48 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:49 AM">6:49 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:50 AM">6:50 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:51 AM">6:51 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:52 AM">6:52 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:53 AM">6:53 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:54 AM">6:54 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:55 AM">6:55 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:56 AM">6:56 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:57 AM">6:57 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:58 AM">6:58 AM</option>';
+            sunrise_sh_options_str  += '<option value="6:59 AM">6:59 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:00 AM">7:00 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:01 AM">7:01 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:02 AM">7:02 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:03 AM">7:03 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:04 AM">7:04 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:05 AM">7:05 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:06 AM">7:06 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:07 AM">7:07 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:08 AM">7:08 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:09 AM">7:09 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:10 AM">7:10 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:11 AM">7:11 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:12 AM">7:12 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:13 AM">7:13 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:14 AM">7:14 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:15 AM">7:15 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:16 AM">7:16 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:17 AM">7:17 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:18 AM">7:18 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:19 AM">7:19 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:20 AM">7:20 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:21 AM">7:21 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:22 AM">7:22 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:23 AM">7:23 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:24 AM">7:24 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:25 AM">7:25 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:26 AM">7:26 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:27 AM">7:27 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:28 AM">7:28 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:29 AM">7:29 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:30 AM">7:30 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:31 AM">7:31 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:32 AM">7:32 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:33 AM">7:33 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:34 AM">7:34 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:35 AM">7:35 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:36 AM">7:36 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:37 AM">7:37 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:38 AM">7:38 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:39 AM">7:39 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:40 AM">7:40 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:41 AM">7:41 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:42 AM">7:42 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:43 AM">7:43 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:44 AM">7:44 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:45 AM">7:45 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:46 AM">7:46 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:47 AM">7:47 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:48 AM">7:48 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:49 AM">7:49 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:50 AM">7:50 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:51 AM">7:51 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:52 AM">7:52 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:53 AM">7:53 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:54 AM">7:54 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:55 AM">7:55 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:56 AM">7:56 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:57 AM">7:57 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:58 AM">7:58 AM</option>';
+            sunrise_sh_options_str  += '<option value="7:59 AM">7:59 AM</option>';
+            sunrise_sh_options_str  += '<option value="8:00 AM">8:00 AM</option>';
+            sunrise_sh_options_str  += '<option value="8:01 AM">8:01 AM</option>';
+            sunrise_sh_options_str  += '<option value="8:02 AM">8:02 AM</option>';
+            sunrise_sh_options_str  += '<option value="8:03 AM">8:03 AM</option>';
+            sunrise_sh_options_str  += '<option value="8:04 AM">8:04 AM</option>';
+            sunrise_sh_options_str  += '<option value="8:05 AM">8:05 AM</option>';
+            sunrise_sh_options_str  += '<option value="8:06 AM">8:06 AM</option>';
+            sunrise_sh_options_str  += '<option value="8:07 AM">8:07 AM</option>';
+            sunrise_sh_options_str  += '<option value="8:08 AM">8:08 AM</option>';
+            sunrise_sh_options_str  += '<option value="8:09 AM">8:09 AM</option>';
+            sunrise_sh_options_str  += '<option value="8:10 AM">8:10 AM</option>';
+            sunrise_sh_options_str  += '<option value="8:12 AM">8:12 AM</option>';
+            sunrise_sh_options_str  += '<option value="8:13 AM">8:13 AM</option>';
+            sunrise_sh_options_str  += '<option value="8:14 AM">8:14 AM</option>';
+            sunrise_sh_options_str  += '<option value="8:15 AM">8:15 AM</option>';
+            sunrise_sh_options_str  += '<option value="8:16 AM">8:16 AM</option>';
+            sunrise_sh_options_str  += '<option value="8:23 AM">8:23 AM</option>';
+            sel_sunrise_sh.innerHTML = sunrise_sh_options_str;
+            div_sunrise_sh.appendChild(sel_sunrise_sh);
+            var lab_sunrise_sh = document.createElement('div');
+            lab_sunrise_sh.innerHTML = 'sunrise_sh';
+            lab_sunrise_sh.className = 'filterlabel';
+            div_sunrise_sh.appendChild(lab_sunrise_sh);
+            var reset_sunrise_sh = document.createElement('div');
+            reset_sunrise_sh.innerHTML = 'clear filter';
+            reset_sunrise_sh.className = 'filterlabel';
+            reset_sunrise_sh.onclick = function() {
+                var options = document.getElementById("sel_sunrise_sh").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_sunrise_sh.appendChild(reset_sunrise_sh);
+        </script>
+    </body>
+</html>
